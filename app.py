@@ -179,6 +179,10 @@ if 'part1_voice_timer_start' not in st.session_state:
 if 'part1_voice_audio_data' not in st.session_state:
     st.session_state.part1_voice_audio_data = None  # Store generated TTS audio
 
+# Voice mode timing data (for all parts)
+if 'voice_timing_data' not in st.session_state:
+    st.session_state.voice_timing_data = []  # List of timing info for each voice response
+
 # Part 2 long response silence detection (for text mode)
 if 'part2_long_question_start_time' not in st.session_state:
     st.session_state.part2_long_question_start_time = None
@@ -529,29 +533,115 @@ def text_to_speech(text):
         st.error(f"Error generating audio: {str(e)}")
         return None
 
-def transcribe_audio(audio_file):
+def store_voice_timing_data(part, question, answer, timing_result):
+    """
+    Store timing data for voice mode answers
+    
+    Args:
+        part: Part name (e.g., "Part 1", "Part 2 Long Response", etc.)
+        question: The question text
+        answer: The answer text
+        timing_result: Dict with 'words', 'duration' from transcribe_audio
+    """
+    if not isinstance(timing_result, dict) or not timing_result.get('words'):
+        return
+    
+    word_count = len(answer.split())
+    duration = timing_result.get('duration', 0)
+    wpm = (word_count / duration * 60) if duration > 0 else 0
+    
+    # Calculate pauses
+    pauses = []
+    words_data = timing_result.get('words', [])
+    for i in range(len(words_data) - 1):
+        pause_length = words_data[i+1]['start'] - words_data[i]['end']
+        if pause_length > 0.3:  # Only record pauses > 0.3s
+            pauses.append(round(pause_length, 2))
+    
+    st.session_state.voice_timing_data.append({
+        'part': part,
+        'question': question[:100] + '...' if len(question) > 100 else question,
+        'answer': answer[:100] + '...' if len(answer) > 100 else answer,
+        'word_count': word_count,
+        'duration': round(duration, 1),
+        'wpm': round(wpm, 1),
+        'pauses': pauses,
+        'num_pauses': len(pauses),
+        'avg_pause': round(sum(pauses) / len(pauses), 2) if pauses else 0,
+        'long_pauses': len([p for p in pauses if p > 1.5])
+    })
+
+def transcribe_audio(audio_file, include_timestamps=False):
     """
     Transcribe audio file to text using OpenAI Whisper API
-    Returns the transcribed text
+    
+    Args:
+        audio_file: Audio file to transcribe
+        include_timestamps: If True, returns dict with text and word-level timestamps
+    
+    Returns:
+        If include_timestamps=False: Just the transcribed text string
+        If include_timestamps=True: Dict with 'text', 'words' (list of {word, start, end})
     """
     try:
         # audio_file is already a file-like object from st.audio_input()
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file
-        )
-        
-        # Check if transcription is empty or just whitespace/noise
-        transcribed_text = transcript.text.strip()
-        
-        # If no meaningful words were transcribed, return a default message
-        # that will be caught as irrelevant by the relevance checker
-        if not transcribed_text or len(transcribed_text) < 3:
-            return "[No speech detected]"
-        
-        return transcribed_text
+        if include_timestamps:
+            # Request word-level timestamps
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                response_format="verbose_json",
+                timestamp_granularities=["word"]
+            )
+            
+            # Check if transcription is empty
+            transcribed_text = transcript.text.strip() if hasattr(transcript, 'text') else ""
+            
+            if not transcribed_text or len(transcribed_text) < 3:
+                return {
+                    'text': "[No speech detected]",
+                    'words': [],
+                    'duration': 0
+                }
+            
+            # Extract word-level timestamps
+            words = []
+            if hasattr(transcript, 'words') and transcript.words:
+                words = [
+                    {
+                        'word': w.word,
+                        'start': w.start,
+                        'end': w.end
+                    }
+                    for w in transcript.words
+                ]
+            
+            return {
+                'text': transcribed_text,
+                'words': words,
+                'duration': words[-1]['end'] if words else 0
+            }
+        else:
+            # Standard transcription (text only)
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
+            
+            # Check if transcription is empty or just whitespace/noise
+            transcribed_text = transcript.text.strip()
+            
+            # If no meaningful words were transcribed, return a default message
+            # that will be caught as irrelevant by the relevance checker
+            if not transcribed_text or len(transcribed_text) < 3:
+                return "[No speech detected]"
+            
+            return transcribed_text
+            
     except Exception as e:
         st.error(f"Error transcribing audio: {str(e)}")
+        if include_timestamps:
+            return {'text': None, 'words': [], 'duration': 0}
         return None
 
 def get_voice_timer_limit(part_type):
@@ -615,6 +705,7 @@ def initialize_part2():
         st.session_state.part2_rounding_redirect_count = 0
         st.session_state.part2_long_response_redirect_message = ""
         st.session_state.part2_instruction_audio_played = False
+        st.session_state.part2_rounding_audio_played_key = None  # Track audio playback for rounding questions
         # For voice mode: show intro page first, for text mode: go straight to prep
         if st.session_state.test_mode == 'voice':
             st.session_state.part2_showing_intro = True
@@ -1381,6 +1472,12 @@ Now, give a brief acknowledgment."""
                             # If not relevant and first try, send redirect
                             else:
                                 # First redirect - send polite nudge
+                                # First, add the user's irrelevant answer to history
+                                st.session_state.part1_conversation_history.append({
+                                    'role': 'user',
+                                    'content': user_answer
+                                })
+                                
                                 redirect_message = generate_redirect_message(st.session_state.part1_current_question)
                                 st.session_state.part1_redirect_count = 1
                                 
@@ -1459,9 +1556,10 @@ Now, give a brief acknowledgment."""
                     
                     # Process audio when user stops recording
                     if audio_input is not None:
-                        # Transcribe the audio
+                        # Transcribe the audio with timestamps
                         with st.spinner("Transcribing your answer..."):
-                            user_answer = transcribe_audio(audio_input)
+                            result = transcribe_audio(audio_input, include_timestamps=True)
+                            user_answer = result['text'] if isinstance(result, dict) else result
                         
                         if user_answer:
                             # Show simple confirmation (no transcription text - more realistic)
@@ -1490,6 +1588,9 @@ Now, give a brief acknowledgment."""
                                         'role': 'user',
                                         'content': user_answer
                                     })
+                                    
+                                    # Store timing data
+                                    store_voice_timing_data('Part 1', st.session_state.part1_current_question, user_answer, result)
                                     
                                     st.session_state.part1_redirect_count = 0
                                     
@@ -1551,6 +1652,9 @@ Now, give a brief acknowledgment."""
                                         'content': user_answer
                                     })
                                     
+                                    # Store timing data (even for irrelevant answers)
+                                    store_voice_timing_data('Part 1', st.session_state.part1_current_question, user_answer, result)
+                                    
                                     st.session_state.part1_conversation_history.append({
                                         'role': 'examiner',
                                         'content': "Thank you. Let's move on."
@@ -1568,6 +1672,15 @@ Now, give a brief acknowledgment."""
                                 
                                 # First redirect
                                 else:
+                                    # First, add the user's irrelevant answer to history
+                                    st.session_state.part1_conversation_history.append({
+                                        'role': 'user',
+                                        'content': user_answer
+                                    })
+                                    
+                                    # Store timing data (even for irrelevant first answer)
+                                    store_voice_timing_data('Part 1 (Irrelevant)', st.session_state.part1_current_question, user_answer, result)
+                                    
                                     redirect_message = generate_redirect_message(st.session_state.part1_current_question)
                                     st.session_state.part1_redirect_count = 1
                                     
@@ -1827,6 +1940,12 @@ Now, give a brief acknowledgment."""
                                     # If not relevant, redirect once
                                     if not is_relevant and relevance_score < 0.7:
                                         # First redirect - send polite nudge
+                                        # First, add the user's irrelevant answer to history
+                                        st.session_state.part2_conversation_history.append({
+                                            'role': 'user',
+                                            'content': submitted_response
+                                        })
+                                        
                                         redirect_message = generate_redirect_message(main_prompt)
                                         st.session_state.part2_long_response_redirect_count = 1
                                     
@@ -1944,7 +2063,8 @@ Now, give a brief acknowledgment."""
                 
                     if audio_input is not None:
                         with st.spinner("Transcribing..."):
-                            submitted_response = transcribe_audio(audio_input)
+                            result = transcribe_audio(audio_input, include_timestamps=True)
+                            submitted_response = result['text'] if isinstance(result, dict) else result
                     
                         if submitted_response:
                             # Show simple confirmation (no transcription text or word count - more realistic)
@@ -1972,6 +2092,9 @@ Now, give a brief acknowledgment."""
                                     # Show completion after second irrelevant
                                     st.session_state.part2_long_response = submitted_response
                                     st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                    
+                                    # Store timing data
+                                    store_voice_timing_data('Part 2 Long Response (Irrelevant)', main_prompt, submitted_response, result)
                                 
                                     completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
                                     st.session_state.part2_completion_message = completion_message
@@ -1986,6 +2109,9 @@ Now, give a brief acknowledgment."""
                                     # Proceed to rounding after relevant answer
                                     st.session_state.part2_long_response = submitted_response
                                     st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                    
+                                    # Store timing data
+                                    store_voice_timing_data('Part 2 Long Response', main_prompt, submitted_response, result)
                                 
                                     with st.spinner("Processing..."):
                                         examiner_prompt = get_examiner_prompt_part2(st.session_state.part2_conversation_history, phase="long_response")
@@ -2006,7 +2132,12 @@ Now, give a brief acknowledgment."""
                                     st.rerun()
                             
                                 elif not is_relevant and relevance_score < 0.7:
-                                    # First redirect
+                                    # First redirect - add user's answer first, then redirect
+                                    st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                    
+                                    # Store timing data
+                                    store_voice_timing_data('Part 2 Long Response (Irrelevant - 1st attempt)', main_prompt, submitted_response, result)
+                                    
                                     redirect_message = generate_redirect_message(main_prompt)
                                     st.session_state.part2_long_response_redirect_count = 1
                                     st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': redirect_message})
@@ -2018,6 +2149,9 @@ Now, give a brief acknowledgment."""
                                     # Relevant, proceed normally
                                     st.session_state.part2_long_response = submitted_response
                                     st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                    
+                                    # Store timing data
+                                    store_voice_timing_data('Part 2 Long Response', main_prompt, submitted_response, result)
                                 
                                     with st.spinner("Processing..."):
                                         examiner_prompt = get_examiner_prompt_part2(st.session_state.part2_conversation_history, phase="long_response")
@@ -2117,8 +2251,8 @@ Now, give a brief acknowledgment."""
                         st.write("I'll ask you some follow-up questions. Please respond with brief, conversational responses.")
                         st.write(f"**Examiner:** {st.session_state.part2_current_rounding_question}")
                 
-                    # Silence detection for Part 2 rounding-off questions
-                    if st.session_state.part2_waiting_for_rounding_answer and st.session_state.part2_current_rounding_question:
+                    # Silence detection for Part 2 rounding-off questions (TEXT MODE ONLY)
+                    if st.session_state.test_mode == 'text' and st.session_state.part2_waiting_for_rounding_answer and st.session_state.part2_current_rounding_question:
                         silence_status = check_silence_and_update("part2_rounding", 30)  # 30s check-in, 60s auto-skip
                     
                         # Show check-in message if threshold reached
@@ -2205,6 +2339,12 @@ Now, give a brief acknowledgment."""
                                         # If not relevant, redirect once
                                         if not is_relevant and relevance_score < 0.7:
                                             # First redirect - send polite nudge
+                                            # First, add the user's irrelevant answer to history
+                                            st.session_state.part2_conversation_history.append({
+                                                'role': 'user',
+                                                'content': rounding_answer
+                                            })
+                                            
                                             redirect_message = generate_redirect_message(current_question)
                                             st.session_state.part2_rounding_redirect_count = 1
                                         
@@ -2273,12 +2413,22 @@ Now, give a brief acknowledgment."""
                             st.write("")
                             st.write("⏱️ **Time limit: 30 seconds**")
                         
-                            # Auto-play question audio (no text - audio only)
+                            # Play question audio (autoplay only once per question, but keep player visible)
                             if st.session_state.part2_current_rounding_question:
+                                # Create unique key for this question
+                                current_audio_key = f"p2r_q{st.session_state.part2_rounding_question_index}_r{st.session_state.part2_rounding_redirect_count}"
+                                
+                                # Generate audio
                                 question_audio_file = text_to_speech(st.session_state.part2_current_rounding_question)
                                 if question_audio_file:
-                                    st.audio(question_audio_file, format="audio/mp3", autoplay=True)
+                                    # Only autoplay if we haven't played this question yet
+                                    should_autoplay = st.session_state.get('part2_rounding_audio_played_key') != current_audio_key
+                                    st.audio(question_audio_file, format="audio/mp3", autoplay=should_autoplay)
                                     st.caption("🔊 Listen to the question")
+                                    
+                                    # Mark as played after first time
+                                    if should_autoplay:
+                                        st.session_state.part2_rounding_audio_played_key = current_audio_key
                         
                             # Voice timer logic (actual limit: 40 seconds, but we tell them 30)
                             if st.session_state.part2_rounding_voice_timer_start is not None:
@@ -2302,6 +2452,7 @@ Now, give a brief acknowledgment."""
                                     st.session_state.part2_rounding_redirect_count = 0
                                     st.session_state.part2_rounding_voice_timer_start = None
                                     st.session_state.part2_rounding_voice_audio_data = None
+                                    st.session_state.part2_rounding_audio_played_key = None  # Clear audio key
                                     time.sleep(1)
                                     st.rerun()
                         
@@ -2315,9 +2466,10 @@ Now, give a brief acknowledgment."""
                         
                             # Process audio when user stops recording
                             if audio_input is not None:
-                                # Transcribe the audio
+                                # Transcribe the audio with timestamps
                                 with st.spinner("Transcribing your answer..."):
-                                    rounding_answer = transcribe_audio(audio_input)
+                                    result = transcribe_audio(audio_input, include_timestamps=True)
+                                    rounding_answer = result['text'] if isinstance(result, dict) else result
                             
                                 if rounding_answer:
                                     # Show simple confirmation (no transcription text - more realistic)
@@ -2344,6 +2496,9 @@ Now, give a brief acknowledgment."""
                                                 'role': 'user',
                                                 'content': rounding_answer
                                             })
+                                            
+                                            # Store timing data
+                                            store_voice_timing_data('Part 2 Rounding-off', current_question, rounding_answer, result)
                                         
                                             st.session_state.part2_conversation_history.append({
                                                 'role': 'examiner',
@@ -2355,6 +2510,7 @@ Now, give a brief acknowledgment."""
                                             st.session_state.part2_waiting_for_rounding_answer = False
                                             st.session_state.part2_rounding_questions_answered += 1
                                             st.session_state.part2_rounding_question_index += 1
+                                            st.session_state.part2_rounding_audio_played_key = None  # Clear audio key
                                         
                                             if st.session_state.part2_rounding_questions_answered >= 2:
                                                 completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
@@ -2382,6 +2538,9 @@ Now, give a brief acknowledgment."""
                                                     'role': 'user',
                                                     'content': rounding_answer
                                                 })
+                                                
+                                                # Store timing data
+                                                store_voice_timing_data('Part 2 Rounding-off', current_question, rounding_answer, result)
                                             
                                                 # Generate acknowledgment
                                                 examiner_prompt = get_examiner_prompt_part2(
@@ -2401,6 +2560,7 @@ Now, give a brief acknowledgment."""
                                                 st.session_state.part2_waiting_for_rounding_answer = False
                                                 st.session_state.part2_rounding_questions_answered += 1
                                                 st.session_state.part2_rounding_question_index += 1
+                                                st.session_state.part2_rounding_audio_played_key = None  # Clear audio key
                                             
                                                 if st.session_state.part2_rounding_questions_answered >= 2:
                                                     completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
@@ -2414,13 +2574,16 @@ Now, give a brief acknowledgment."""
                                             
                                                 st.rerun()
                                             else:
-                                                # Irrelevant answer - send redirect
+                                                # Irrelevant answer - send redirect, store timing data
                                                 st.session_state.part2_rounding_redirect_count += 1
                                             
                                                 st.session_state.part2_conversation_history.append({
                                                     'role': 'user',
                                                     'content': rounding_answer
                                                 })
+                                                
+                                                # Store timing data
+                                                store_voice_timing_data('Part 2 Rounding-off (Irrelevant)', current_question, rounding_answer, result)
                                             
                                                 redirect_message = generate_redirect_message(current_question)
                                                 st.session_state.part2_conversation_history.append({
@@ -2430,6 +2593,7 @@ Now, give a brief acknowledgment."""
                                             
                                                 st.session_state.part2_current_rounding_question = redirect_message
                                                 st.session_state.part2_waiting_for_rounding_answer = True
+                                                st.session_state.part2_rounding_audio_played_key = None  # Clear audio key for new question
                                                 st.rerun()
                         
                             # Auto-refresh after 40 seconds to check for timeout
@@ -2833,11 +2997,13 @@ Now, give a brief acknowledgment."""
                     
                     # Process audio when user stops recording
                     if audio_input is not None and st.session_state.part3_transcribed_answer is None:
-                        # Transcribe the audio (only once)
+                        # Transcribe the audio (only once) with timestamps
                         with st.spinner("Transcribing your answer..."):
-                            user_answer = transcribe_audio(audio_input)
+                            result = transcribe_audio(audio_input, include_timestamps=True)
+                            user_answer = result['text'] if isinstance(result, dict) else result
                             if user_answer:
                                 st.session_state.part3_transcribed_answer = user_answer
+                                st.session_state.part3_timing_result = result  # Store for later
                                 st.rerun()
                     
                     # Show simple confirmation and submit button if we have a transcribed answer
@@ -2875,6 +3041,10 @@ Now, give a brief acknowledgment."""
                                     'content': user_answer
                                 })
                                 
+                                # Store timing data
+                                if st.session_state.get('part3_timing_result'):
+                                    store_voice_timing_data('Part 3', st.session_state.part3_current_question, user_answer, st.session_state.part3_timing_result)
+                                
                                 # Reset redirect count
                                 st.session_state.part3_redirect_count = 0
                                 
@@ -2902,6 +3072,8 @@ Now, give a brief acknowledgment."""
                                                 'content': follow_up_question
                                             })
                                             st.session_state.part3_followups_asked = 1
+                                            st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                            st.rerun()
                                         
                                         elif st.session_state.part3_followups_asked == 1:
                                             if st.session_state.part3_first_answer_word_count >= 30:
@@ -2926,6 +3098,8 @@ Now, give a brief acknowledgment."""
                                                         'role': 'examiner',
                                                         'content': new_question
                                                     })
+                                                    st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                                    st.rerun()
                                             else:
                                                 if word_count >= 20:
                                                     st.session_state.part3_questions_asked += 1
@@ -2937,6 +3111,7 @@ Now, give a brief acknowledgment."""
                                                         st.session_state.part3_current_question = ""
                                                         st.session_state.part3_completion_message = "Thank you for your responses; that completes the speaking test!"
                                                         st.session_state.part3_showing_completion = True
+                                                        st.rerun()
                                                     else:
                                                         new_question = generate_part3_question(
                                                             st.session_state.part3_theme,
@@ -2949,6 +3124,8 @@ Now, give a brief acknowledgment."""
                                                             'role': 'examiner',
                                                             'content': new_question
                                                         })
+                                                        st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                                        st.rerun()
                                                 else:
                                                     follow_up_question = generate_part3_question(
                                                         st.session_state.part3_theme,
@@ -2962,6 +3139,8 @@ Now, give a brief acknowledgment."""
                                                         'content': follow_up_question
                                                     })
                                                     st.session_state.part3_followups_asked = 2
+                                                    st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                                    st.rerun()
                                         
                                         else:  # followups_asked == 2
                                             st.session_state.part3_questions_asked += 1
@@ -2973,6 +3152,7 @@ Now, give a brief acknowledgment."""
                                                 st.session_state.part3_current_question = ""
                                                 st.session_state.part3_completion_message = "Thank you for your responses; that completes the speaking test!"
                                                 st.session_state.part3_showing_completion = True
+                                                st.rerun()
                                             else:
                                                 new_question = generate_part3_question(
                                                     st.session_state.part3_theme,
@@ -2986,8 +3166,9 @@ Now, give a brief acknowledgment."""
                                                     'content': new_question
                                                 })
                                         
-                                                # Clear transcription for next question
+                                                # Clear transcription and audio for next question
                                                 st.session_state.part3_transcribed_answer = None
+                                                st.session_state.part3_audio_played_key = None
                                                 st.rerun()
                             
                             # If answer is irrelevant and we've already redirected once, move on
@@ -2996,6 +3177,10 @@ Now, give a brief acknowledgment."""
                                     'role': 'user',
                                     'content': user_answer
                                 })
+                                
+                                # Store timing data (even for irrelevant)
+                                if st.session_state.get('part3_timing_result'):
+                                    store_voice_timing_data('Part 3 (Irrelevant)', st.session_state.part3_current_question, user_answer, st.session_state.part3_timing_result)
                                 
                                 st.session_state.part3_conversation_history.append({
                                     'role': 'examiner',
@@ -3012,6 +3197,7 @@ Now, give a brief acknowledgment."""
                                     st.session_state.part3_current_question = ""
                                     st.session_state.part3_completion_message = "Thank you for your responses; that completes the speaking test!"
                                     st.session_state.part3_showing_completion = True
+                                    st.rerun()
                                 else:
                                     with st.spinner("Thinking of a question..."):
                                         new_question = generate_part3_question(
@@ -3027,8 +3213,9 @@ Now, give a brief acknowledgment."""
                                             'content': new_question
                                         })
                                 
-                                # Clear transcription for next question
+                                # Clear transcription and audio for next question
                                 st.session_state.part3_transcribed_answer = None
+                                st.session_state.part3_audio_played_key = None
                                 st.rerun()
                             
                             # If answer is irrelevant and first time, send redirect
@@ -3039,6 +3226,10 @@ Now, give a brief acknowledgment."""
                                     'role': 'user',
                                     'content': user_answer
                                 })
+                                
+                                # Store timing data (even for irrelevant first answer)
+                                if st.session_state.get('part3_timing_result'):
+                                    store_voice_timing_data('Part 3 (Irrelevant - 1st attempt)', st.session_state.part3_current_question, user_answer, st.session_state.part3_timing_result)
                                 
                                 with st.spinner("Thinking..."):
                                     redirect_message = generate_redirect_message(st.session_state.part3_current_question)
@@ -3061,6 +3252,88 @@ Now, give a brief acknowledgment."""
     
     elif st.session_state.step == "SCORING":
         st.write("# 📊 Your Speaking Assessment Results")
+        st.write("---")
+        
+        # Display Full Conversation History (for debugging/verification)
+        with st.expander("📝 View Full Conversation History", expanded=False):
+            st.write("### Part 1: The Interview")
+            if st.session_state.get('part1_conversation_history'):
+                for entry in st.session_state.part1_conversation_history:
+                    if entry['role'] == 'examiner':
+                        st.write(f"**Examiner:** {entry['content']}")
+                    elif entry['role'] in ['user', 'candidate']:
+                        st.write(f"**You:** {entry['content']}")
+                    st.write("")
+            else:
+                st.write("*No Part 1 conversation data*")
+            
+            st.write("---")
+            st.write("### Part 2: The Long Turn")
+            if st.session_state.get('part2_conversation_history'):
+                for entry in st.session_state.part2_conversation_history:
+                    if entry['role'] == 'examiner':
+                        st.write(f"**Examiner:** {entry['content']}")
+                    elif entry['role'] in ['user', 'candidate']:
+                        st.write(f"**You:** {entry['content']}")
+                    st.write("")
+            else:
+                st.write("*No Part 2 conversation data*")
+            
+            st.write("---")
+            st.write("### Part 3: Discussion")
+            if st.session_state.get('part3_conversation_history'):
+                for entry in st.session_state.part3_conversation_history:
+                    if entry['role'] == 'examiner':
+                        st.write(f"**Examiner:** {entry['content']}")
+                    elif entry['role'] in ['user', 'candidate']:
+                        st.write(f"**You:** {entry['content']}")
+                    st.write("")
+            else:
+                st.write("*No Part 3 conversation data*")
+            
+            # Voice Mode Timing Data (if available)
+            if st.session_state.get('test_mode') == 'voice':
+                st.write("---")
+                st.write("### 🎤 Voice Mode - Speaking Analytics")
+                
+                voice_data = st.session_state.get('voice_timing_data', [])
+                
+                if not voice_data:
+                    st.write("*No timing data captured. This feature requires voice responses with timestamps.*")
+                    st.write(f"Debug: test_mode={st.session_state.get('test_mode')}, data_count={len(voice_data)}")
+                else:
+                    st.write("")
+                    
+                for idx, timing in enumerate(voice_data, 1):
+                    with st.expander(f"Response {idx}: {timing['part']}", expanded=False):
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.write(f"**Question:** {timing['question']}")
+                            st.write(f"**Answer:** {timing['answer']}")
+                            st.write("")
+                            st.write(f"**📊 Speaking Metrics:**")
+                            st.write(f"- Word count: {timing['word_count']}")
+                            st.write(f"- Duration: {timing['duration']}s")
+                            st.write(f"- Speaking rate: **{timing['wpm']} WPM**")
+                        
+                        with col2:
+                            st.write(f"**⏸️ Pause Analysis:**")
+                            st.write(f"- Total pauses (>0.3s): {timing['num_pauses']}")
+                            st.write(f"- Average pause: {timing['avg_pause']}s")
+                            st.write(f"- Long pauses (>1.5s): {timing['long_pauses']}")
+                            
+                            # Show assessment
+                            if timing['wpm'] > 160:
+                                st.info("✓ Fast pace - good fluency!")
+                            elif timing['wpm'] > 120:
+                                st.success("✓ Normal pace - well done!")
+                            elif timing['wpm'] > 80:
+                                st.warning("⚠️ Slow pace - practice speaking faster")
+                            else:
+                                st.error("Consider working on fluency")
+        
+        st.write("")
         st.write("---")
         
         # CEFR Level Assessment Section
