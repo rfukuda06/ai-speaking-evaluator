@@ -131,6 +131,12 @@ if 'part2_rounding_acknowledgment' not in st.session_state:
     st.session_state.part2_rounding_acknowledgment = ""  # Store GPT's acknowledgment of rounding answer
 if 'part2_long_response_redirect_message' not in st.session_state:
     st.session_state.part2_long_response_redirect_message = ""  # Store redirect message for long response
+if 'part2_instruction_audio_played' not in st.session_state:
+    st.session_state.part2_instruction_audio_played = False  # Track if instruction audio has been played in voice mode
+if 'part2_showing_intro' not in st.session_state:
+    st.session_state.part2_showing_intro = False  # Track if showing intro page (voice mode only)
+if 'part2_intro_start_time' not in st.session_state:
+    st.session_state.part2_intro_start_time = None  # Track when intro started for auto-transition
 
 # Part 3 state variables
 if 'part3_initialized' not in st.session_state:
@@ -596,7 +602,7 @@ def initialize_part2():
             st.session_state.part2_prompt_card = prompt_card
         
         st.session_state.part2_initialized = True
-        st.session_state.part2_prep_start_time = time.time()
+        st.session_state.part2_prep_start_time = None  # Will be set after intro (voice) or immediately (text)
         st.session_state.part2_prep_elapsed = 0
         st.session_state.part2_prep_complete = False
         st.session_state.part2_long_response = ""
@@ -608,6 +614,14 @@ def initialize_part2():
         st.session_state.part2_long_response_redirect_count = 0
         st.session_state.part2_rounding_redirect_count = 0
         st.session_state.part2_long_response_redirect_message = ""
+        st.session_state.part2_instruction_audio_played = False
+        # For voice mode: show intro page first, for text mode: go straight to prep
+        if st.session_state.test_mode == 'voice':
+            st.session_state.part2_showing_intro = True
+            st.session_state.part2_intro_start_time = time.time()
+        else:
+            st.session_state.part2_showing_intro = False
+            st.session_state.part2_prep_start_time = time.time()
 
 def get_examiner_prompt_part2(conversation_history, phase="long_response"):
     """Create the system prompt for the Examiner LLM in Part 2"""
@@ -948,7 +962,7 @@ def main():
     # Load custom CSS styles
     load_css()
     
-    st.title("🎙️ English Speaking Test")
+    st.title("🎙️ AI Speaking Examiner")
     
     # Debug controls (temporary)
     with st.expander("🛠️ Debug Controls (Skip to Part)"):
@@ -956,6 +970,8 @@ def main():
         current_mode_index = 0  # Default to Voice
         if st.session_state.test_mode == 'text':
             current_mode_index = 1
+        elif st.session_state.test_mode == 'voice':
+            current_mode_index = 0
         
         debug_mode = st.radio(
             "Test Mode:", 
@@ -965,13 +981,20 @@ def main():
             key="debug_mode_selector"
         )
         
-        # Update test_mode based on selection
-        if debug_mode == "Voice":
-            st.session_state.test_mode = 'voice'
+        # Show current mode if set
+        if st.session_state.test_mode is not None:
+            st.write(f"**Current mode:** {st.session_state.test_mode.title()}")
         else:
-            st.session_state.test_mode = 'text'
+            st.write("**Current mode:** Not selected yet")
         
-        st.write(f"**Current mode:** {st.session_state.test_mode.title()}")
+        # Button to apply mode change from debug radio
+        if st.button("Apply Mode Change", key="apply_debug_mode"):
+            if debug_mode == "Voice":
+                st.session_state.test_mode = 'voice'
+            else:
+                st.session_state.test_mode = 'text'
+            st.rerun()
+        
         st.write("---")
         
         col1, col2, col3, col4 = st.columns(4)
@@ -996,7 +1019,7 @@ def main():
                 st.rerun()
 
     if st.session_state.step == "START":
-        st.write("Hello Renzo! Ready to start your English test?")
+        st.write("Hello! Ready to start your English test?")
         if st.button("Begin"):
             # When user clicks Begin, move to ONBOARDING (not directly to PART_1)
             st.session_state.step = "ONBOARDING"
@@ -1376,26 +1399,22 @@ Now, give a brief acknowledgment."""
             
             elif st.session_state.test_mode == 'voice':
                 # ===== VOICE MODE =====
-                # Display the current question (with acknowledgment if available)
+                # Audio only (no question text in voice mode)
                 if st.session_state.part1_current_question:
-                    question_to_display = st.session_state.part1_current_question
-                    
-                    # If there's an acknowledgment, show it first, then the question
+                    # Determine what to speak (acknowledgment + question if both exist)
+                    question_to_speak = st.session_state.part1_current_question
                     if st.session_state.part1_acknowledgment:
-                        combined_response = st.session_state.part1_acknowledgment + " " + st.session_state.part1_current_question
-                        st.write("**Examiner:** " + combined_response)
-                        question_to_display = combined_response
-                    else:
-                        st.write("**Examiner:** " + st.session_state.part1_current_question)
+                        question_to_speak = st.session_state.part1_acknowledgment + " " + st.session_state.part1_current_question
                     
                     # Generate TTS audio if not already generated for this question
                     if st.session_state.part1_voice_audio_data is None:
                         with st.spinner("Generating audio..."):
-                            st.session_state.part1_voice_audio_data = text_to_speech(question_to_display)
+                            st.session_state.part1_voice_audio_data = text_to_speech(question_to_speak)
                     
-                    # Auto-play the audio
+                    # Auto-play the audio (no text display - audio only)
                     if st.session_state.part1_voice_audio_data:
                         st.audio(st.session_state.part1_voice_audio_data, format="audio/mp3", autoplay=True)
+                        st.caption("🔊 Listen to the question")
                         
                 
                 # Voice input for user's answer
@@ -1445,9 +1464,8 @@ Now, give a brief acknowledgment."""
                             user_answer = transcribe_audio(audio_input)
                         
                         if user_answer:
-                            # Show transcription
-                            st.write("**Your answer (transcribed):**")
-                            st.write(user_answer)
+                            # Show simple confirmation (no transcription text - more realistic)
+                            st.success("✓ Answer transcribed")
                             
                             # Submit button - use unique key to avoid conflicts
                             if st.button("Submit Answer", key=f"{question_key}_submit"):
@@ -1573,258 +1591,216 @@ Now, give a brief acknowledgment."""
         # Initialize Part 2 when we first enter
         initialize_part2()
         
-        st.write("### Part 2: The Long Turn")
-        st.write("In this part, you'll speak for 1-2 minutes about a topic. You'll have 5 seconds to prepare. (Testing mode)")
-        
-        # Show prompt card
-        if st.session_state.part2_prompt_card:
-            st.write("---")
-            st.write("### 📋 Your Prompt Card")
-            st.write(f"**{st.session_state.part2_prompt_card.get('main_prompt', '')}**")
+        # Voice mode: Show intro page first, then transition to main content
+        if st.session_state.test_mode == 'voice' and st.session_state.part2_showing_intro:
+            st.write("### Part 2: The Long Turn")
             st.write("")
-            st.write("You should say:")
-            for bullet in st.session_state.part2_prompt_card.get('bullet_points', []):
-                st.write(f"• {bullet}")
             st.write("")
-            st.write("*You will have to talk about the topic for 1 to 2 minutes. You have 5 seconds to think about what you're going to say. (Testing mode) You can make some notes to help you if you wish.*")
-            st.write("---")
-        
-        # Preparation phase (5 seconds for testing)
-        if not st.session_state.part2_prep_complete:
-            # Calculate elapsed time
-            if st.session_state.part2_prep_start_time:
-                elapsed = int(time.time() - st.session_state.part2_prep_start_time)
-                remaining = max(0, 5 - elapsed)
-                
-                if remaining > 0:
-                    st.info(f"⏱️ **Preparation time:** {remaining} seconds remaining")
-                    st.progress(1 - (remaining / 5))
-                    
-                    # Add skip button
-                    if st.button("⏩ Skip preparation time and start now"):
-                        st.session_state.part2_prep_complete = True
-                        st.rerun()
-                    
-                    # Auto-refresh every second to update timer
-                    time.sleep(1)
+            
+            # Generate and play instruction audio (only once)
+            if not st.session_state.part2_instruction_audio_played:
+                instruction_text = "In this part, you'll speak for 1 to 2 minutes about a topic. You'll have 60 seconds to prepare."
+                instruction_audio = text_to_speech(instruction_text)
+                if instruction_audio:
+                    st.audio(instruction_audio, format="audio/mp3", autoplay=True)
+                    st.caption("🔊 Listen to the instructions")
+                    st.session_state.part2_instruction_audio_played = True
+            
+            # Check if intro time is up (6 seconds to allow 5-second audio to play)
+            if st.session_state.part2_intro_start_time:
+                elapsed = time.time() - st.session_state.part2_intro_start_time
+                if elapsed >= 6:
+                    # Transition to main Part 2 content
+                    st.session_state.part2_showing_intro = False
+                    st.session_state.part2_prep_start_time = time.time()
                     st.rerun()
                 else:
-                    # Preparation time is up
-                    st.session_state.part2_prep_complete = True
-                    st.session_state.part2_prep_elapsed = 5
-                    reset_silence_timer("part2_long")  # Start timer for long response
-                    st.rerun()
+                    # Refresh after 7 seconds (once) to allow audio to play uninterrupted
+                    st_autorefresh(interval=7000, limit=2, key="part2_intro_check")
         
-        # After preparation, show speaking prompt
-        if st.session_state.part2_prep_complete and not st.session_state.part2_long_response:
-            st.success("⏱️ Preparation time is up!")
-            st.write("**Now, please tell me about the topic. Speak for about 1-2 minutes.**")
+        # Main Part 2 content (text mode or voice mode after intro)
+        elif not st.session_state.part2_showing_intro:
+            st.write("### Part 2: The Long Turn")
             
-            # Show redirect message if available
-            if st.session_state.part2_long_response_redirect_message:
-                st.write("---")
-                st.warning(f"**Examiner:** {st.session_state.part2_long_response_redirect_message}")
-                st.info("Please revise your response to better address the prompt card above.")
-                st.write("---")
-            
-            # ===== MODE-SPECIFIC INPUT FOR LONG RESPONSE =====
+            # Instructions: only show for text mode (voice mode already played audio)
             if st.session_state.test_mode == 'text':
-                # ===== TEXT MODE =====
-                # Silence detection for Part 2 long response
-                silence_status = check_silence_and_update("part2_long", 60)  # 60s check-in, 120s auto-skip
-                
-                # Show check-in message if threshold reached
-                if silence_status['show_check_in'] and st.session_state.part2_long_check_in_message:
-                    st.info(f"💭 {st.session_state.part2_long_check_in_message}")
-                
-                # Handle auto-skip if timeout reached
-                if silence_status['should_skip']:
-                    st.session_state.part2_conversation_history.append({
-                        'role': 'candidate',
-                        'content': '[No response - timed out]'
-                    })
-                    st.session_state.part2_long_response = "[No response provided]"
+                st.write("In this part, you'll speak for 1-2 minutes about a topic. You'll have 60 seconds to prepare.")
+            
+            # Show prompt card (both text and voice modes)
+            if st.session_state.part2_prompt_card:
+                st.write("---")
+                st.write("### 📋 Your Prompt Card")
+                st.write(f"**{st.session_state.part2_prompt_card.get('main_prompt', '')}**")
+                st.write("")
+                st.write("You should say:")
+                for bullet in st.session_state.part2_prompt_card.get('bullet_points', []):
+                    st.write(f"• {bullet}")
+                st.write("")
+                st.write("*You will have to talk about the topic for 1 to 2 minutes. You have 60 seconds to think about what you're going to say. You can make some notes to help you if you wish.*")
+                st.write("---")
+            
+            # Preparation phase (60 seconds) - smooth countdown (1 second updates)
+            if not st.session_state.part2_prep_complete:
+                # Calculate elapsed time
+                if st.session_state.part2_prep_start_time:
+                    elapsed = int(time.time() - st.session_state.part2_prep_start_time)
+                    remaining = max(0, 60 - elapsed)
                     
-                    completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                    st.session_state.part2_completion_message = completion_message
-                    st.session_state.part2_showing_completion = True
-                    st.session_state.part2_conversation_history.append({
-                        'role': 'examiner',
-                        'content': completion_message
-                    })
-                    
-                    st.session_state.part2_complete = True
-                    reset_silence_timer("part2_long")
-                    st.rerun()
-                
-                # Large text area for long response
-                with st.form(key="part2_long_response_form", clear_on_submit=True):
-                    st.caption("Max words: 400")
-                    long_response = st.text_area(
-                        "Your response (aim for 1-2 minutes):",
-                        height=200,
-                        key="part2_response_input",
-                        help="Take your time and organize your thoughts. Cover all the bullet points if possible."
-                    )
-                    
-                    form_submitted = st.form_submit_button("Submit Response")
-                
-                if form_submitted:
-                    # Save the response immediately before form clears
-                    submitted_response = long_response.strip() if long_response else ""
-                    
-                    if submitted_response:
-                        # Calculate word count
-                        word_count = len(submitted_response.split())
+                    if remaining > 0:
+                        st.info(f"⏱️ **Preparation time:** {remaining} seconds remaining")
+                        st.progress(1 - (remaining / 60))
                         
-                        # Hard limit: block if over 400 words
-                        if word_count > 400:
-                            st.error(f"Your response is {word_count} words. Please reduce it to 400 words or less before submitting.")
-                        else:
-                            # Get main prompt for relevance checking
-                            main_prompt = st.session_state.part2_prompt_card.get('main_prompt', '')
-                            
-                            # Always check relevance first (even after redirect)
-                            bullet_points = "\n".join(st.session_state.part2_prompt_card.get('bullet_points', []))
-                            prompt_context = f"{main_prompt}\n{bullet_points}"
-                            
-                            is_relevant, relevance_score = check_relevance(
-                                submitted_response,
-                                main_prompt,
-                                prompt_context
-                            )
-                            
-                            # If we've already redirected once AND answer is still not relevant, skip to completion message
-                            if st.session_state.part2_long_response_redirect_count >= 1 and (not is_relevant and relevance_score < 0.7):
-                                # Already redirected and STILL irrelevant - show completion message
-                                st.session_state.part2_long_response = submitted_response
-                                st.session_state.part2_long_response_redirect_count = 0
-                                st.session_state.part2_long_response_redirect_message = ""
-                                
-                                # Add response to history
-                                st.session_state.part2_conversation_history.append({
-                                    'role': 'user',
-                                    'content': submitted_response
-                                })
-                                
-                                # Generate completion message
-                                completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                                st.session_state.part2_completion_message = completion_message
-                                st.session_state.part2_showing_completion = True
-                                st.session_state.part2_conversation_history.append({
-                                    'role': 'examiner',
-                                    'content': completion_message
-                                })
-                                
-                                st.session_state.part2_complete = True
-                                reset_silence_timer("part2_long")
-                                st.rerun()
-                            
-                            # If already redirected but answer IS now relevant, proceed to rounding-off
-                            elif st.session_state.part2_long_response_redirect_count >= 1 and (is_relevant or relevance_score >= 0.7):
-                                # Answer is now relevant after redirect - proceed normally
-                                st.session_state.part2_long_response = submitted_response
-                                st.session_state.part2_long_response_redirect_count = 0
-                                st.session_state.part2_long_response_redirect_message = ""
-                                
-                                # Add response to history
-                                st.session_state.part2_conversation_history.append({
-                                    'role': 'user',
-                                    'content': submitted_response
-                                })
-                                
-                                # Generate GPT acknowledgment
-                                with st.spinner("Processing..."):
-                                    examiner_prompt = get_examiner_prompt_part2(
-                                        st.session_state.part2_conversation_history,
-                                        phase="long_response"
-                                    )
-                                    examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
-                                    
-                                    st.session_state.part2_conversation_history.append({
-                                        'role': 'examiner',
-                                        'content': examiner_response
-                                    })
-                                    
-                                    st.session_state.part2_long_response_acknowledgment = examiner_response
-                                
-                                # Generate rounding off questions
-                                with st.spinner("Generating follow-up questions..."):
-                                    try:
-                                        rounding_questions = generate_rounding_off_questions(
-                                            submitted_response,
-                                            st.session_state.part2_prompt_card.get('main_prompt', '')
-                                        )
-                                        if rounding_questions and len(rounding_questions) > 0:
-                                            st.session_state.part2_rounding_off_questions = rounding_questions
-                                        else:
-                                            st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-                                    except Exception as e:
-                                        st.error(f"Error generating questions: {str(e)}")
-                                        st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-                                
-                                # Reset states for rounding questions
-                                st.session_state.part2_rounding_question_index = 0
-                                st.session_state.part2_rounding_questions_answered = 0
-                                st.session_state.part2_waiting_for_rounding_answer = False
-                                st.session_state.part2_rounding_redirect_count = 0
-                                st.session_state.part2_current_rounding_question = ""
-                                st.session_state.part2_rounding_acknowledgment = ""
-                                reset_silence_timer("part2_long")
-                                st.rerun()
+                        # Add skip button
+                        if st.button("⏩ Skip preparation time and start now"):
+                            st.session_state.part2_prep_complete = True
+                            st.rerun()
+                        
+                        # Auto-refresh every second for smooth countdown
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        # Preparation time is up
+                        st.session_state.part2_prep_complete = True
+                        st.session_state.part2_prep_elapsed = 60
+                        reset_silence_timer("part2_long")  # Start timer for long response
+                        st.rerun()
+            
+            # After preparation, show speaking prompt
+            if st.session_state.part2_prep_complete and not st.session_state.part2_long_response:
+                st.success("⏱️ Preparation time is up!")
+                st.write("**Now, please tell me about the topic. Speak for about 1-2 minutes.**")
+                
+                # Show redirect message if available
+                if st.session_state.part2_long_response_redirect_message:
+                    st.write("---")
+                    st.warning(f"**Examiner:** {st.session_state.part2_long_response_redirect_message}")
+                    st.info("Please revise your response to better address the prompt card above.")
+                    st.write("---")
+                
+                # ===== MODE-SPECIFIC INPUT FOR LONG RESPONSE =====
+                if st.session_state.test_mode == 'text':
+                    # ===== TEXT MODE =====
+                    # Silence detection for Part 2 long response
+                    silence_status = check_silence_and_update("part2_long", 60)  # 60s check-in, 120s auto-skip
+                
+                    # Show check-in message if threshold reached
+                    if silence_status['show_check_in'] and st.session_state.part2_long_check_in_message:
+                        st.info(f"💭 {st.session_state.part2_long_check_in_message}")
+                
+                    # Handle auto-skip if timeout reached
+                    if silence_status['should_skip']:
+                        st.session_state.part2_conversation_history.append({
+                            'role': 'candidate',
+                            'content': '[No response - timed out]'
+                        })
+                        st.session_state.part2_long_response = "[No response provided]"
+                    
+                        completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                        st.session_state.part2_completion_message = completion_message
+                        st.session_state.part2_showing_completion = True
+                        st.session_state.part2_conversation_history.append({
+                            'role': 'examiner',
+                            'content': completion_message
+                        })
+                    
+                        st.session_state.part2_complete = True
+                        reset_silence_timer("part2_long")
+                        st.rerun()
+                
+                    # Large text area for long response
+                    with st.form(key="part2_long_response_form", clear_on_submit=True):
+                        st.caption("Max words: 400")
+                        long_response = st.text_area(
+                            "Your response (aim for 1-2 minutes):",
+                            height=200,
+                            key="part2_response_input",
+                            help="Take your time and organize your thoughts. Cover all the bullet points if possible."
+                        )
+                    
+                        form_submitted = st.form_submit_button("Submit Response")
+                
+                    if form_submitted:
+                        # Save the response immediately before form clears
+                        submitted_response = long_response.strip() if long_response else ""
+                    
+                        if submitted_response:
+                            # Calculate word count
+                            word_count = len(submitted_response.split())
+                        
+                            # Hard limit: block if over 400 words
+                            if word_count > 400:
+                                st.error(f"Your response is {word_count} words. Please reduce it to 400 words or less before submitting.")
                             else:
-                                # First submission (no redirect yet) - relevance already checked above
-                                # If not relevant, redirect once
-                                if not is_relevant and relevance_score < 0.7:
-                                    # First redirect - send polite nudge
-                                    redirect_message = generate_redirect_message(main_prompt)
-                                    st.session_state.part2_long_response_redirect_count = 1
-                                    
-                                    # Add redirect to history
-                                    st.session_state.part2_conversation_history.append({
-                                        'role': 'examiner',
-                                        'content': redirect_message
-                                    })
-                                    
-                                    # Store redirect message to display persistently
-                                    st.session_state.part2_long_response_redirect_message = redirect_message
-                                    # Don't save response yet - let them resubmit
-                                    reset_silence_timer("part2_long")  # Reset timer for redirect
-                                    st.rerun()
-                                else:
-                                    # Response is relevant - process normally
+                                # Get main prompt for relevance checking
+                                main_prompt = st.session_state.part2_prompt_card.get('main_prompt', '')
+                            
+                                # Always check relevance first (even after redirect)
+                                bullet_points = "\n".join(st.session_state.part2_prompt_card.get('bullet_points', []))
+                                prompt_context = f"{main_prompt}\n{bullet_points}"
+                            
+                                is_relevant, relevance_score = check_relevance(
+                                    submitted_response,
+                                    main_prompt,
+                                    prompt_context
+                                )
+                            
+                                # If we've already redirected once AND answer is still not relevant, skip to completion message
+                                if st.session_state.part2_long_response_redirect_count >= 1 and (not is_relevant and relevance_score < 0.7):
+                                    # Already redirected and STILL irrelevant - show completion message
                                     st.session_state.part2_long_response = submitted_response
-                                    
-                                    # Clear redirect message and reset redirect count since answer is relevant
-                                    st.session_state.part2_long_response_redirect_message = ""
                                     st.session_state.part2_long_response_redirect_count = 0
-                                    
-                                    # Add to conversation history
+                                    st.session_state.part2_long_response_redirect_message = ""
+                                
+                                    # Add response to history
                                     st.session_state.part2_conversation_history.append({
                                         'role': 'user',
                                         'content': submitted_response
                                     })
-                                    
-                                    # Generate GPT acknowledgment first
+                                
+                                    # Generate completion message
+                                    completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                                    st.session_state.part2_completion_message = completion_message
+                                    st.session_state.part2_showing_completion = True
+                                    st.session_state.part2_conversation_history.append({
+                                        'role': 'examiner',
+                                        'content': completion_message
+                                    })
+                                
+                                    st.session_state.part2_complete = True
+                                    reset_silence_timer("part2_long")
+                                    st.rerun()
+                            
+                                # If already redirected but answer IS now relevant, proceed to rounding-off
+                                elif st.session_state.part2_long_response_redirect_count >= 1 and (is_relevant or relevance_score >= 0.7):
+                                    # Answer is now relevant after redirect - proceed normally
+                                    st.session_state.part2_long_response = submitted_response
+                                    st.session_state.part2_long_response_redirect_count = 0
+                                    st.session_state.part2_long_response_redirect_message = ""
+                                
+                                    # Add response to history
+                                    st.session_state.part2_conversation_history.append({
+                                        'role': 'user',
+                                        'content': submitted_response
+                                    })
+                                
+                                    # Generate GPT acknowledgment
                                     with st.spinner("Processing..."):
                                         examiner_prompt = get_examiner_prompt_part2(
                                             st.session_state.part2_conversation_history,
                                             phase="long_response"
                                         )
                                         examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
-                                        
-                                        # Add examiner's acknowledgment to history
+                                    
                                         st.session_state.part2_conversation_history.append({
                                             'role': 'examiner',
                                             'content': examiner_response
                                         })
-                                        
-                                        # Store the acknowledgment to show it
-                                        st.session_state.part2_long_response_acknowledgment = examiner_response
                                     
+                                        st.session_state.part2_long_response_acknowledgment = examiner_response
+                                
                                     # Generate rounding off questions
-                                    try:
-                                        with st.spinner("Generating follow-up questions..."):
+                                    with st.spinner("Generating follow-up questions..."):
+                                        try:
                                             rounding_questions = generate_rounding_off_questions(
                                                 submitted_response,
                                                 st.session_state.part2_prompt_card.get('main_prompt', '')
@@ -1832,13 +1808,11 @@ Now, give a brief acknowledgment."""
                                             if rounding_questions and len(rounding_questions) > 0:
                                                 st.session_state.part2_rounding_off_questions = rounding_questions
                                             else:
-                                                # Use fallback if GPT returns empty
                                                 st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-                                    except Exception as e:
-                                        st.error(f"Error generating questions: {str(e)}")
-                                        # Use fallback questions on error
-                                        st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-                                    
+                                        except Exception as e:
+                                            st.error(f"Error generating questions: {str(e)}")
+                                            st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
+                                
                                     # Reset states for rounding questions
                                     st.session_state.part2_rounding_question_index = 0
                                     st.session_state.part2_rounding_questions_answered = 0
@@ -1846,545 +1820,621 @@ Now, give a brief acknowledgment."""
                                     st.session_state.part2_rounding_redirect_count = 0
                                     st.session_state.part2_current_rounding_question = ""
                                     st.session_state.part2_rounding_acknowledgment = ""
-                                    reset_silence_timer("part2_long")  # Reset timer after long response
-                                    st.rerun()
-                    else:
-                        st.warning("Please provide a response before submitting.")
-            
-            elif st.session_state.test_mode == 'voice':
-                # ===== VOICE MODE FOR LONG RESPONSE =====
-                st.write("")
-                st.write("⏱️ **Time limit: 120 seconds (2 minutes)**")
-                
-                # Voice timer logic (actual limit: 130 seconds, but we tell them 120)
-                if st.session_state.part2_voice_timer_start is not None:
-                    expired, elapsed, remaining = check_voice_timer_expired(
-                        st.session_state.part2_voice_timer_start,
-                        130  # Actual time limit (10s buffer)
-                    )
-                    
-                    # Auto-skip if expired (no countdown shown)
-                    if expired:
-                        st.warning("⏰ Time's up! Moving to next section...")
-                        st.session_state.part2_conversation_history.append({
-                            'role': 'candidate',
-                            'content': '[No response - timed out]'
-                        })
-                        st.session_state.part2_long_response = "[No response provided]"
-                        
-                        completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                        st.session_state.part2_completion_message = completion_message
-                        st.session_state.part2_showing_completion = True
-                        st.session_state.part2_conversation_history.append({
-                            'role': 'examiner',
-                            'content': completion_message
-                        })
-                        
-                        st.session_state.part2_complete = True
-                        st.session_state.part2_voice_timer_start = None
-                        time.sleep(1)
-                        st.rerun()
-                
-                # Audio recording - use unique key based on redirect count to reset widget
-                audio_key = f"part2_long_r{st.session_state.part2_long_response_redirect_count}"
-                audio_input = st.audio_input("🎤 Record your long response (1-2 minutes)", key=audio_key)
-                
-                if st.session_state.part2_voice_timer_start is None:
-                    st.session_state.part2_voice_timer_start = time.time()
-                
-                if audio_input is not None:
-                    with st.spinner("Transcribing..."):
-                        submitted_response = transcribe_audio(audio_input)
-                    
-                    if submitted_response:
-                        st.write("**Your response (transcribed):**")
-                        st.write(submitted_response)
-                        
-                        if st.button("Submit Response", key=f"{audio_key}_submit"):
-                            word_count = len(submitted_response.split())
-                            if word_count > 400:
-                                st.error(f"Your response is {word_count} words. Please record again with 400 words or less.")
-                                st.rerun()
-                            
-                            # Check relevance
-                            main_prompt = st.session_state.part2_prompt_card.get('main_prompt', '')
-                            bullet_points = "\n".join(st.session_state.part2_prompt_card.get('bullet_points', []))
-                            prompt_context = f"{main_prompt}\n{bullet_points}"
-                            
-                            is_relevant, relevance_score = check_relevance(
-                                submitted_response,
-                                main_prompt,
-                                prompt_context
-                            )
-                            
-                            # Handle relevance (same logic as text mode)
-                            if st.session_state.part2_long_response_redirect_count >= 1 and (not is_relevant and relevance_score < 0.7):
-                                # Show completion after second irrelevant
-                                st.session_state.part2_long_response = submitted_response
-                                st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
-                                
-                                completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                                st.session_state.part2_completion_message = completion_message
-                                st.session_state.part2_showing_completion = True
-                                st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': completion_message})
-                                
-                                st.session_state.part2_complete = True
-                                st.session_state.part2_voice_timer_start = None
-                                st.rerun()
-                            
-                            elif st.session_state.part2_long_response_redirect_count >= 1 and (is_relevant or relevance_score >= 0.7):
-                                # Proceed to rounding after relevant answer
-                                st.session_state.part2_long_response = submitted_response
-                                st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
-                                
-                                with st.spinner("Processing..."):
-                                    examiner_prompt = get_examiner_prompt_part2(st.session_state.part2_conversation_history, phase="long_response")
-                                    examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
-                                    st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': examiner_response})
-                                    st.session_state.part2_long_response_acknowledgment = examiner_response
-                                
-                                with st.spinner("Generating follow-up questions..."):
-                                    try:
-                                        rounding_questions = generate_rounding_off_questions(submitted_response, main_prompt)
-                                        st.session_state.part2_rounding_off_questions = rounding_questions if rounding_questions else ["Was that easy to talk about?", "Is that still important to you?"]
-                                    except:
-                                        st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-                                
-                                st.session_state.part2_rounding_question_index = 0
-                                st.session_state.part2_rounding_questions_answered = 0
-                                st.session_state.part2_voice_timer_start = None
-                                st.rerun()
-                            
-                            elif not is_relevant and relevance_score < 0.7:
-                                # First redirect
-                                redirect_message = generate_redirect_message(main_prompt)
-                                st.session_state.part2_long_response_redirect_count = 1
-                                st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': redirect_message})
-                                st.session_state.part2_long_response_redirect_message = redirect_message
-                                st.session_state.part2_voice_timer_start = None
-                                st.rerun()
-                            
-                            else:
-                                # Relevant, proceed normally
-                                st.session_state.part2_long_response = submitted_response
-                                st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
-                                
-                                with st.spinner("Processing..."):
-                                    examiner_prompt = get_examiner_prompt_part2(st.session_state.part2_conversation_history, phase="long_response")
-                                    examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
-                                    st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': examiner_response})
-                                    st.session_state.part2_long_response_acknowledgment = examiner_response
-                                
-                                with st.spinner("Generating follow-up questions..."):
-                                    try:
-                                        rounding_questions = generate_rounding_off_questions(submitted_response, main_prompt)
-                                        st.session_state.part2_rounding_off_questions = rounding_questions if rounding_questions else ["Was that easy to talk about?", "Is that still important to you?"]
-                                    except:
-                                        st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-                                
-                                st.session_state.part2_rounding_question_index = 0
-                                st.session_state.part2_rounding_questions_answered = 0
-                                st.session_state.part2_voice_timer_start = None
-                                st.rerun()
-                
-                # Auto-refresh after 130 seconds to check for timeout
-                if st.session_state.part2_voice_timer_start is not None and audio_input is None:
-                    st_autorefresh(interval=130000, key="part2_voice_timer")
-        
-        # Show completion message if Part 2 is done (check this FIRST before showing rounding questions)
-        if st.session_state.part2_showing_completion and st.session_state.part2_completion_message:
-            st.write("---")
-            st.write(f"**Examiner:** {st.session_state.part2_completion_message}")
-            st.write("")
-            if st.button("Continue to Part 3", key="part2_continue_button"):
-                initialize_part3()
-                st.session_state.step = "PART_3"
-                st.rerun()
-        # Rounding off questions phase
-        elif st.session_state.part2_long_response:
-            # Show GPT's acknowledgment of the long response if available
-            if st.session_state.part2_long_response_acknowledgment:
-                st.write("---")
-                st.write(f"**Examiner:** {st.session_state.part2_long_response_acknowledgment}")
-                st.write("---")
-                # Clear it so it doesn't show again
-                st.session_state.part2_long_response_acknowledgment = ""
-            
-            # Ensure we have rounding off questions (use fallback if missing)
-            if not st.session_state.part2_rounding_off_questions or len(st.session_state.part2_rounding_off_questions) == 0:
-                st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
-            
-            # Check if we've answered 2 questions total (including redirects)
-            if st.session_state.part2_rounding_questions_answered < 2:
-                # Show GPT's acknowledgment of previous rounding answer if available (FIRST, before showing new question)
-                if st.session_state.part2_rounding_acknowledgment:
-                    st.write("---")
-                    st.write(f"**Examiner:** {st.session_state.part2_rounding_acknowledgment}")
-                    st.write("---")
-                    # Clear it so it doesn't show again
-                    st.session_state.part2_rounding_acknowledgment = ""
-                
-                # If we don't have a current question, or we're ready for a new question
-                if not st.session_state.part2_waiting_for_rounding_answer and st.session_state.part2_current_rounding_question == "":
-                    # FIRST: Check if we've already asked 2 questions
-                    if st.session_state.part2_rounding_questions_answered >= 2:
-                        # Part 2 is complete
-                        completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                        st.session_state.part2_completion_message = completion_message
-                        st.session_state.part2_showing_completion = True
-                        
-                        st.session_state.part2_conversation_history.append({
-                            'role': 'examiner',
-                            'content': completion_message
-                        })
-                        st.rerun()
-                    else:
-                        # Get current question (use index to cycle through questions if needed)
-                        if st.session_state.part2_rounding_question_index >= len(st.session_state.part2_rounding_off_questions):
-                            st.session_state.part2_rounding_question_index = 0
-                        
-                        current_question = st.session_state.part2_rounding_off_questions[st.session_state.part2_rounding_question_index]
-                        
-                        # Set as current question
-                        st.session_state.part2_current_rounding_question = current_question
-                        
-                        # Add question to history
-                        st.session_state.part2_conversation_history.append({
-                            'role': 'examiner',
-                            'content': current_question
-                        })
-                        
-                        # Set waiting state
-                        st.session_state.part2_waiting_for_rounding_answer = True
-                        st.session_state.part2_rounding_redirect_count = 0  # Reset redirect count for new question
-                        reset_silence_timer("part2_rounding")  # Reset timer for new question
-                        st.rerun()
-                
-                # Display the current question
-                if st.session_state.part2_current_rounding_question:
-                    st.write("---")
-                    st.write("### Rounding Off Questions")
-                    st.write("I'll ask you some follow-up questions. Please respond with brief, conversational responses.")
-                    st.write(f"**Examiner:** {st.session_state.part2_current_rounding_question}")
-                
-                # Silence detection for Part 2 rounding-off questions
-                if st.session_state.part2_waiting_for_rounding_answer and st.session_state.part2_current_rounding_question:
-                    silence_status = check_silence_and_update("part2_rounding", 30)  # 30s check-in, 60s auto-skip
-                    
-                    # Show check-in message if threshold reached
-                    if silence_status['show_check_in'] and st.session_state.part2_rounding_check_in_message:
-                        st.info(f"💭 {st.session_state.part2_rounding_check_in_message}")
-                    
-                    # Handle auto-skip if timeout reached
-                    if silence_status['should_skip']:
-                        # Store "No response" in conversation history
-                        st.session_state.part2_conversation_history.append({
-                            'role': 'candidate',
-                            'content': '[No response - timed out]'
-                        })
-                        # Move to next question
-                        st.session_state.part2_current_rounding_question = ""
-                        st.session_state.part2_waiting_for_rounding_answer = False
-                        st.session_state.part2_rounding_questions_answered += 1
-                        st.session_state.part2_rounding_question_index += 1
-                        st.session_state.part2_rounding_redirect_count = 0
-                        reset_silence_timer("part2_rounding")
-                        st.rerun()
-                
-                # Input for rounding off answer
-                if st.session_state.part2_waiting_for_rounding_answer:
-                    if st.session_state.test_mode == 'text':
-                        with st.form(key=f"rounding_answer_{st.session_state.part2_rounding_question_index}", clear_on_submit=True):
-                            st.caption("Max words: 65")
-                            rounding_answer = st.text_input("Your answer:", key=f"rounding_input_{st.session_state.part2_rounding_question_index}")
-                            form_submitted = st.form_submit_button("Submit Answer")
-                        
-                        if form_submitted:
-                            if rounding_answer.strip():
-                                # Check word count limit
-                                word_count = len(rounding_answer.split())
-                                if word_count > 65:
-                                    st.error(f"Your answer is {word_count} words. Please reduce it to 65 words or less.")
-                                    st.rerun()
-                                
-                                current_question = st.session_state.part2_current_rounding_question
-                                
-                                # Check if we've already redirected once - if so, move on regardless of relevance
-                                if st.session_state.part2_rounding_redirect_count >= 1:
-                                    # Already redirected once - move on to next question regardless of relevance
-                                    st.session_state.part2_conversation_history.append({
-                                        'role': 'user',
-                                        'content': rounding_answer
-                                    })
-                                    
-                                    # Add thank you message
-                                    st.session_state.part2_conversation_history.append({
-                                        'role': 'examiner',
-                                        'content': "Thank you. Let's move on."
-                                    })
-                                    
-                                    # Reset redirect count and move to next question
-                                    st.session_state.part2_rounding_redirect_count = 0
-                                    st.session_state.part2_current_rounding_question = ""
-                                    st.session_state.part2_waiting_for_rounding_answer = False
-                                    st.session_state.part2_rounding_questions_answered += 1
-                                    st.session_state.part2_rounding_question_index += 1  # Move to next question
-                                    
-                                    # Check if we've completed Part 2
-                                    if st.session_state.part2_rounding_questions_answered >= 2:
-                                        completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                                        st.session_state.part2_completion_message = completion_message
-                                        st.session_state.part2_showing_completion = True
-                                        
-                                        st.session_state.part2_conversation_history.append({
-                                            'role': 'examiner',
-                                            'content': completion_message
-                                        })
-                                    
-                                    reset_silence_timer("part2_rounding")  # Reset timer after answer
+                                    reset_silence_timer("part2_long")
                                     st.rerun()
                                 else:
-                                    # Check relevance before processing
-                                    context = format_conversation_history(st.session_state.part2_conversation_history[-4:])
-                                    is_relevant, relevance_score = check_relevance(
-                                        rounding_answer,
-                                        current_question,
-                                        context
-                                    )
-                                    
+                                    # First submission (no redirect yet) - relevance already checked above
                                     # If not relevant, redirect once
                                     if not is_relevant and relevance_score < 0.7:
                                         # First redirect - send polite nudge
-                                        redirect_message = generate_redirect_message(current_question)
-                                        st.session_state.part2_rounding_redirect_count = 1
-                                        
+                                        redirect_message = generate_redirect_message(main_prompt)
+                                        st.session_state.part2_long_response_redirect_count = 1
+                                    
                                         # Add redirect to history
                                         st.session_state.part2_conversation_history.append({
                                             'role': 'examiner',
                                             'content': redirect_message
                                         })
-                                        
-                                        # Show redirect message
-                                        st.session_state.part2_current_rounding_question = redirect_message
-                                        st.session_state.part2_waiting_for_rounding_answer = True
-                                        reset_silence_timer("part2_rounding")  # Reset timer for redirect
+                                    
+                                        # Store redirect message to display persistently
+                                        st.session_state.part2_long_response_redirect_message = redirect_message
+                                        # Don't save response yet - let them resubmit
+                                        reset_silence_timer("part2_long")  # Reset timer for redirect
                                         st.rerun()
                                     else:
                                         # Response is relevant - process normally
-                                        # Add answer to history
+                                        st.session_state.part2_long_response = submitted_response
+                                    
+                                        # Clear redirect message and reset redirect count since answer is relevant
+                                        st.session_state.part2_long_response_redirect_message = ""
+                                        st.session_state.part2_long_response_redirect_count = 0
+                                    
+                                        # Add to conversation history
                                         st.session_state.part2_conversation_history.append({
                                             'role': 'user',
-                                            'content': rounding_answer
+                                            'content': submitted_response
                                         })
-                                        
-                                        # Reset redirect count since answer is relevant
-                                        st.session_state.part2_rounding_redirect_count = 0
-                                        
-                                        # Generate GPT acknowledgment
+                                    
+                                        # Generate GPT acknowledgment first
                                         with st.spinner("Processing..."):
                                             examiner_prompt = get_examiner_prompt_part2(
                                                 st.session_state.part2_conversation_history,
-                                                phase="rounding_off"
+                                                phase="long_response"
                                             )
-                                            
                                             examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
-                                            
-                                            # Add examiner's response to history
+                                        
+                                            # Add examiner's acknowledgment to history
                                             st.session_state.part2_conversation_history.append({
                                                 'role': 'examiner',
                                                 'content': examiner_response
                                             })
-                                            
-                                            # Store acknowledgment to show on next render
-                                            st.session_state.part2_rounding_acknowledgment = examiner_response
-                                            
-                                            # Count question as answered and reset for next
-                                            st.session_state.part2_rounding_questions_answered += 1
-                                            st.session_state.part2_rounding_question_index += 1  # Move to next question
-                                            st.session_state.part2_current_rounding_question = ""
-                                            st.session_state.part2_waiting_for_rounding_answer = False
-                                            
-                                            # Check if we've completed Part 2
-                                            if st.session_state.part2_rounding_questions_answered >= 2:
-                                                completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
-                                                st.session_state.part2_completion_message = completion_message
-                                                st.session_state.part2_showing_completion = True
-                                                
-                                                st.session_state.part2_conversation_history.append({
-                                                    'role': 'examiner',
-                                                    'content': completion_message
-                                                })
-                                            
-                                            reset_silence_timer("part2_rounding")  # Reset timer after answer
-                                            st.rerun()
-                    
-                    elif st.session_state.test_mode == 'voice':
-                        # ===== VOICE MODE FOR ROUNDING OFF QUESTIONS =====
-                        st.write("")
-                        st.write("⏱️ **Time limit: 30 seconds**")
-                        
-                        # Auto-play question audio
-                        if st.session_state.part2_current_rounding_question:
-                            question_audio_file = text_to_speech(st.session_state.part2_current_rounding_question)
-                            if question_audio_file:
-                                st.audio(question_audio_file, format="audio/mp3", autoplay=True)
-                        
-                        # Voice timer logic (actual limit: 40 seconds, but we tell them 30)
-                        if st.session_state.part2_rounding_voice_timer_start is not None:
-                            expired, elapsed, remaining = check_voice_timer_expired(
-                                st.session_state.part2_rounding_voice_timer_start,
-                                40  # Actual time limit (10s buffer)
-                            )
-                            
-                            # Auto-skip if expired (no countdown shown)
-                            if expired:
-                                st.warning("⏰ Time's up! Moving to next question...")
-                                st.session_state.part2_conversation_history.append({
-                                    'role': 'candidate',
-                                    'content': '[No response - timed out]'
-                                })
-                                # Move to next question
-                                st.session_state.part2_current_rounding_question = ""
-                                st.session_state.part2_waiting_for_rounding_answer = False
-                                st.session_state.part2_rounding_questions_answered += 1
-                                st.session_state.part2_rounding_question_index += 1
-                                st.session_state.part2_rounding_redirect_count = 0
-                                st.session_state.part2_rounding_voice_timer_start = None
-                                st.session_state.part2_rounding_voice_audio_data = None
-                                time.sleep(1)
-                                st.rerun()
-                        
-                        # Audio recording widget
-                        audio_key = f"part2_rounding_q{st.session_state.part2_rounding_question_index}_r{st.session_state.part2_rounding_redirect_count}"
-                        audio_input = st.audio_input("🎤 Record your answer", key=audio_key)
-                        
-                        # Start timer when audio widget appears
-                        if st.session_state.part2_rounding_voice_timer_start is None:
-                            st.session_state.part2_rounding_voice_timer_start = time.time()
-                        
-                        # Process audio when user stops recording
-                        if audio_input is not None:
-                            # Transcribe the audio
-                            with st.spinner("Transcribing your answer..."):
-                                rounding_answer = transcribe_audio(audio_input)
-                            
-                            if rounding_answer:
-                                # Show transcription
-                                st.write("**Your answer (transcribed):**")
-                                st.write(rounding_answer)
-                                
-                                # Submit button
-                                if st.button("Submit Answer", key=f"{audio_key}_submit"):
-                                    # Clear audio data and timer
-                                    st.session_state.part2_rounding_voice_timer_start = None
-                                    st.session_state.part2_rounding_voice_audio_data = None
+                                        
+                                            # Store the acknowledgment to show it
+                                            st.session_state.part2_long_response_acknowledgment = examiner_response
                                     
+                                        # Generate rounding off questions
+                                        try:
+                                            with st.spinner("Generating follow-up questions..."):
+                                                rounding_questions = generate_rounding_off_questions(
+                                                    submitted_response,
+                                                    st.session_state.part2_prompt_card.get('main_prompt', '')
+                                                )
+                                                if rounding_questions and len(rounding_questions) > 0:
+                                                    st.session_state.part2_rounding_off_questions = rounding_questions
+                                                else:
+                                                    # Use fallback if GPT returns empty
+                                                    st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
+                                        except Exception as e:
+                                            st.error(f"Error generating questions: {str(e)}")
+                                            # Use fallback questions on error
+                                            st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
+                                    
+                                        # Reset states for rounding questions
+                                        st.session_state.part2_rounding_question_index = 0
+                                        st.session_state.part2_rounding_questions_answered = 0
+                                        st.session_state.part2_waiting_for_rounding_answer = False
+                                        st.session_state.part2_rounding_redirect_count = 0
+                                        st.session_state.part2_current_rounding_question = ""
+                                        st.session_state.part2_rounding_acknowledgment = ""
+                                        reset_silence_timer("part2_long")  # Reset timer after long response
+                                        st.rerun()
+                        else:
+                            st.warning("Please provide a response before submitting.")
+            
+                elif st.session_state.test_mode == 'voice':
+                    # ===== VOICE MODE FOR LONG RESPONSE =====
+                    st.write("")
+                    st.write("⏱️ **Time limit: 120 seconds (2 minutes)**")
+                
+                    # Voice timer logic (actual limit: 130 seconds, but we tell them 120)
+                    if st.session_state.part2_voice_timer_start is not None:
+                        expired, elapsed, remaining = check_voice_timer_expired(
+                            st.session_state.part2_voice_timer_start,
+                            130  # Actual time limit (10s buffer)
+                        )
+                    
+                        # Auto-skip if expired (no countdown shown)
+                        if expired:
+                            st.warning("⏰ Time's up! Moving to next section...")
+                            st.session_state.part2_conversation_history.append({
+                                'role': 'candidate',
+                                'content': '[No response - timed out]'
+                            })
+                            st.session_state.part2_long_response = "[No response provided]"
+                        
+                            completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                            st.session_state.part2_completion_message = completion_message
+                            st.session_state.part2_showing_completion = True
+                            st.session_state.part2_conversation_history.append({
+                                'role': 'examiner',
+                                'content': completion_message
+                            })
+                        
+                            st.session_state.part2_complete = True
+                            st.session_state.part2_voice_timer_start = None
+                            time.sleep(1)
+                            st.rerun()
+                
+                    # Audio recording - use unique key based on redirect count to reset widget
+                    audio_key = f"part2_long_r{st.session_state.part2_long_response_redirect_count}"
+                    audio_input = st.audio_input("🎤 Record your long response (1-2 minutes)", key=audio_key)
+                
+                    if st.session_state.part2_voice_timer_start is None:
+                        st.session_state.part2_voice_timer_start = time.time()
+                
+                    if audio_input is not None:
+                        with st.spinner("Transcribing..."):
+                            submitted_response = transcribe_audio(audio_input)
+                    
+                        if submitted_response:
+                            # Show simple confirmation (no transcription text or word count - more realistic)
+                            st.success("✓ Answer transcribed")
+                        
+                            if st.button("Submit Response", key=f"{audio_key}_submit"):
+                                word_count = len(submitted_response.split())
+                                if word_count > 400:
+                                    st.error(f"Your response is {word_count} words. Please record again with 400 words or less.")
+                                    st.rerun()
+                            
+                                # Check relevance
+                                main_prompt = st.session_state.part2_prompt_card.get('main_prompt', '')
+                                bullet_points = "\n".join(st.session_state.part2_prompt_card.get('bullet_points', []))
+                                prompt_context = f"{main_prompt}\n{bullet_points}"
+                            
+                                is_relevant, relevance_score = check_relevance(
+                                    submitted_response,
+                                    main_prompt,
+                                    prompt_context
+                                )
+                            
+                                # Handle relevance (same logic as text mode)
+                                if st.session_state.part2_long_response_redirect_count >= 1 and (not is_relevant and relevance_score < 0.7):
+                                    # Show completion after second irrelevant
+                                    st.session_state.part2_long_response = submitted_response
+                                    st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                
+                                    completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                                    st.session_state.part2_completion_message = completion_message
+                                    st.session_state.part2_showing_completion = True
+                                    st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': completion_message})
+                                
+                                    st.session_state.part2_complete = True
+                                    st.session_state.part2_voice_timer_start = None
+                                    st.rerun()
+                            
+                                elif st.session_state.part2_long_response_redirect_count >= 1 and (is_relevant or relevance_score >= 0.7):
+                                    # Proceed to rounding after relevant answer
+                                    st.session_state.part2_long_response = submitted_response
+                                    st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                
+                                    with st.spinner("Processing..."):
+                                        examiner_prompt = get_examiner_prompt_part2(st.session_state.part2_conversation_history, phase="long_response")
+                                        examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
+                                        st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': examiner_response})
+                                        st.session_state.part2_long_response_acknowledgment = examiner_response
+                                
+                                    with st.spinner("Generating follow-up questions..."):
+                                        try:
+                                            rounding_questions = generate_rounding_off_questions(submitted_response, main_prompt)
+                                            st.session_state.part2_rounding_off_questions = rounding_questions if rounding_questions else ["Was that easy to talk about?", "Is that still important to you?"]
+                                        except:
+                                            st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
+                                
+                                    st.session_state.part2_rounding_question_index = 0
+                                    st.session_state.part2_rounding_questions_answered = 0
+                                    st.session_state.part2_voice_timer_start = None
+                                    st.rerun()
+                            
+                                elif not is_relevant and relevance_score < 0.7:
+                                    # First redirect
+                                    redirect_message = generate_redirect_message(main_prompt)
+                                    st.session_state.part2_long_response_redirect_count = 1
+                                    st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': redirect_message})
+                                    st.session_state.part2_long_response_redirect_message = redirect_message
+                                    st.session_state.part2_voice_timer_start = None
+                                    st.rerun()
+                            
+                                else:
+                                    # Relevant, proceed normally
+                                    st.session_state.part2_long_response = submitted_response
+                                    st.session_state.part2_conversation_history.append({'role': 'user', 'content': submitted_response})
+                                
+                                    with st.spinner("Processing..."):
+                                        examiner_prompt = get_examiner_prompt_part2(st.session_state.part2_conversation_history, phase="long_response")
+                                        examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
+                                        st.session_state.part2_conversation_history.append({'role': 'examiner', 'content': examiner_response})
+                                        st.session_state.part2_long_response_acknowledgment = examiner_response
+                                
+                                    with st.spinner("Generating follow-up questions..."):
+                                        try:
+                                            rounding_questions = generate_rounding_off_questions(submitted_response, main_prompt)
+                                            st.session_state.part2_rounding_off_questions = rounding_questions if rounding_questions else ["Was that easy to talk about?", "Is that still important to you?"]
+                                        except:
+                                            st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
+                                
+                                    st.session_state.part2_rounding_question_index = 0
+                                    st.session_state.part2_rounding_questions_answered = 0
+                                    st.session_state.part2_voice_timer_start = None
+                                    st.rerun()
+                
+                    # Auto-refresh after 130 seconds to check for timeout
+                    if st.session_state.part2_voice_timer_start is not None and audio_input is None:
+                        st_autorefresh(interval=130000, key="part2_voice_timer")
+        
+            # Show completion message if Part 2 is done (check this FIRST before showing rounding questions)
+            if st.session_state.part2_showing_completion and st.session_state.part2_completion_message:
+                st.write("---")
+                st.write(f"**Examiner:** {st.session_state.part2_completion_message}")
+                st.write("")
+                if st.button("Continue to Part 3", key="part2_continue_button"):
+                    initialize_part3()
+                    st.session_state.step = "PART_3"
+                    st.rerun()
+            # Rounding off questions phase
+            elif st.session_state.part2_long_response:
+                # Show GPT's acknowledgment of the long response if available
+                if st.session_state.part2_long_response_acknowledgment:
+                    st.write("---")
+                    st.write(f"**Examiner:** {st.session_state.part2_long_response_acknowledgment}")
+                    st.write("---")
+                    # Clear it so it doesn't show again
+                    st.session_state.part2_long_response_acknowledgment = ""
+            
+                # Ensure we have rounding off questions (use fallback if missing)
+                if not st.session_state.part2_rounding_off_questions or len(st.session_state.part2_rounding_off_questions) == 0:
+                    st.session_state.part2_rounding_off_questions = ["Was that easy to talk about?", "Is that still important to you?"]
+            
+                # Check if we've answered 2 questions total (including redirects)
+                if st.session_state.part2_rounding_questions_answered < 2:
+                    # Show GPT's acknowledgment of previous rounding answer if available (FIRST, before showing new question)
+                    if st.session_state.part2_rounding_acknowledgment:
+                        st.write("---")
+                        st.write(f"**Examiner:** {st.session_state.part2_rounding_acknowledgment}")
+                        st.write("---")
+                        # Clear it so it doesn't show again
+                        st.session_state.part2_rounding_acknowledgment = ""
+                
+                    # If we don't have a current question, or we're ready for a new question
+                    if not st.session_state.part2_waiting_for_rounding_answer and st.session_state.part2_current_rounding_question == "":
+                        # FIRST: Check if we've already asked 2 questions
+                        if st.session_state.part2_rounding_questions_answered >= 2:
+                            # Part 2 is complete
+                            completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                            st.session_state.part2_completion_message = completion_message
+                            st.session_state.part2_showing_completion = True
+                        
+                            st.session_state.part2_conversation_history.append({
+                                'role': 'examiner',
+                                'content': completion_message
+                            })
+                            st.rerun()
+                        else:
+                            # Get current question (use index to cycle through questions if needed)
+                            if st.session_state.part2_rounding_question_index >= len(st.session_state.part2_rounding_off_questions):
+                                st.session_state.part2_rounding_question_index = 0
+                        
+                            current_question = st.session_state.part2_rounding_off_questions[st.session_state.part2_rounding_question_index]
+                        
+                            # Set as current question
+                            st.session_state.part2_current_rounding_question = current_question
+                        
+                            # Add question to history
+                            st.session_state.part2_conversation_history.append({
+                                'role': 'examiner',
+                                'content': current_question
+                            })
+                        
+                            # Set waiting state
+                            st.session_state.part2_waiting_for_rounding_answer = True
+                            st.session_state.part2_rounding_redirect_count = 0  # Reset redirect count for new question
+                            reset_silence_timer("part2_rounding")  # Reset timer for new question
+                            st.rerun()
+                
+                    # Display the current question (text mode only)
+                    if st.session_state.part2_current_rounding_question and st.session_state.test_mode == 'text':
+                        st.write("---")
+                        st.write("### Rounding Off Questions")
+                        st.write("I'll ask you some follow-up questions. Please respond with brief, conversational responses.")
+                        st.write(f"**Examiner:** {st.session_state.part2_current_rounding_question}")
+                
+                    # Silence detection for Part 2 rounding-off questions
+                    if st.session_state.part2_waiting_for_rounding_answer and st.session_state.part2_current_rounding_question:
+                        silence_status = check_silence_and_update("part2_rounding", 30)  # 30s check-in, 60s auto-skip
+                    
+                        # Show check-in message if threshold reached
+                        if silence_status['show_check_in'] and st.session_state.part2_rounding_check_in_message:
+                            st.info(f"💭 {st.session_state.part2_rounding_check_in_message}")
+                    
+                        # Handle auto-skip if timeout reached
+                        if silence_status['should_skip']:
+                            # Store "No response" in conversation history
+                            st.session_state.part2_conversation_history.append({
+                                'role': 'candidate',
+                                'content': '[No response - timed out]'
+                            })
+                            # Move to next question
+                            st.session_state.part2_current_rounding_question = ""
+                            st.session_state.part2_waiting_for_rounding_answer = False
+                            st.session_state.part2_rounding_questions_answered += 1
+                            st.session_state.part2_rounding_question_index += 1
+                            st.session_state.part2_rounding_redirect_count = 0
+                            reset_silence_timer("part2_rounding")
+                            st.rerun()
+                
+                    # Input for rounding off answer
+                    if st.session_state.part2_waiting_for_rounding_answer:
+                        if st.session_state.test_mode == 'text':
+                            with st.form(key=f"rounding_answer_{st.session_state.part2_rounding_question_index}", clear_on_submit=True):
+                                st.caption("Max words: 65")
+                                rounding_answer = st.text_input("Your answer:", key=f"rounding_input_{st.session_state.part2_rounding_question_index}")
+                                form_submitted = st.form_submit_button("Submit Answer")
+                        
+                            if form_submitted:
+                                if rounding_answer.strip():
                                     # Check word count limit
                                     word_count = len(rounding_answer.split())
                                     if word_count > 65:
-                                        st.error(f"Your answer is {word_count} words. Please record again with 65 words or less.")
+                                        st.error(f"Your answer is {word_count} words. Please reduce it to 65 words or less.")
                                         st.rerun()
-                                    
+                                
                                     current_question = st.session_state.part2_current_rounding_question
-                                    
-                                    # Check if we've already redirected once
+                                
+                                    # Check if we've already redirected once - if so, move on regardless of relevance
                                     if st.session_state.part2_rounding_redirect_count >= 1:
-                                        # Already redirected - move on
+                                        # Already redirected once - move on to next question regardless of relevance
                                         st.session_state.part2_conversation_history.append({
                                             'role': 'user',
                                             'content': rounding_answer
                                         })
-                                        
+                                    
+                                        # Add thank you message
                                         st.session_state.part2_conversation_history.append({
                                             'role': 'examiner',
                                             'content': "Thank you. Let's move on."
                                         })
-                                        
+                                    
+                                        # Reset redirect count and move to next question
                                         st.session_state.part2_rounding_redirect_count = 0
                                         st.session_state.part2_current_rounding_question = ""
                                         st.session_state.part2_waiting_for_rounding_answer = False
                                         st.session_state.part2_rounding_questions_answered += 1
-                                        st.session_state.part2_rounding_question_index += 1
-                                        
+                                        st.session_state.part2_rounding_question_index += 1  # Move to next question
+                                    
+                                        # Check if we've completed Part 2
                                         if st.session_state.part2_rounding_questions_answered >= 2:
                                             completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
                                             st.session_state.part2_completion_message = completion_message
                                             st.session_state.part2_showing_completion = True
-                                            
+                                        
                                             st.session_state.part2_conversation_history.append({
                                                 'role': 'examiner',
                                                 'content': completion_message
                                             })
-                                        
+                                    
+                                        reset_silence_timer("part2_rounding")  # Reset timer after answer
                                         st.rerun()
                                     else:
-                                        # First answer - check relevance
-                                        context = format_conversation_history(st.session_state.part2_conversation_history[-6:])
+                                        # Check relevance before processing
+                                        context = format_conversation_history(st.session_state.part2_conversation_history[-4:])
                                         is_relevant, relevance_score = check_relevance(
                                             rounding_answer,
                                             current_question,
                                             context
                                         )
+                                    
+                                        # If not relevant, redirect once
+                                        if not is_relevant and relevance_score < 0.7:
+                                            # First redirect - send polite nudge
+                                            redirect_message = generate_redirect_message(current_question)
+                                            st.session_state.part2_rounding_redirect_count = 1
                                         
-                                        if is_relevant or relevance_score >= 0.7:
-                                            # Relevant answer
+                                            # Add redirect to history
+                                            st.session_state.part2_conversation_history.append({
+                                                'role': 'examiner',
+                                                'content': redirect_message
+                                            })
+                                        
+                                            # Show redirect message
+                                            st.session_state.part2_current_rounding_question = redirect_message
+                                            st.session_state.part2_waiting_for_rounding_answer = True
+                                            reset_silence_timer("part2_rounding")  # Reset timer for redirect
+                                            st.rerun()
+                                        else:
+                                            # Response is relevant - process normally
+                                            # Add answer to history
                                             st.session_state.part2_conversation_history.append({
                                                 'role': 'user',
                                                 'content': rounding_answer
                                             })
+                                        
+                                            # Reset redirect count since answer is relevant
+                                            st.session_state.part2_rounding_redirect_count = 0
+                                        
+                                            # Generate GPT acknowledgment
+                                            with st.spinner("Processing..."):
+                                                examiner_prompt = get_examiner_prompt_part2(
+                                                    st.session_state.part2_conversation_history,
+                                                    phase="rounding_off"
+                                                )
                                             
-                                            # Generate acknowledgment
-                                            examiner_prompt = get_examiner_prompt_part2(
-                                                st.session_state.part2_conversation_history,
-                                                phase="rounding_off"
-                                            )
-                                            acknowledgment = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
-                                            st.session_state.part2_rounding_acknowledgment = acknowledgment
+                                                examiner_response = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
+                                            
+                                                # Add examiner's response to history
+                                                st.session_state.part2_conversation_history.append({
+                                                    'role': 'examiner',
+                                                    'content': examiner_response
+                                                })
+                                            
+                                                # Store acknowledgment to show on next render
+                                                st.session_state.part2_rounding_acknowledgment = examiner_response
+                                            
+                                                # Count question as answered and reset for next
+                                                st.session_state.part2_rounding_questions_answered += 1
+                                                st.session_state.part2_rounding_question_index += 1  # Move to next question
+                                                st.session_state.part2_current_rounding_question = ""
+                                                st.session_state.part2_waiting_for_rounding_answer = False
+                                            
+                                                # Check if we've completed Part 2
+                                                if st.session_state.part2_rounding_questions_answered >= 2:
+                                                    completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                                                    st.session_state.part2_completion_message = completion_message
+                                                    st.session_state.part2_showing_completion = True
+                                                
+                                                    st.session_state.part2_conversation_history.append({
+                                                        'role': 'examiner',
+                                                        'content': completion_message
+                                                    })
+                                            
+                                                reset_silence_timer("part2_rounding")  # Reset timer after answer
+                                                st.rerun()
+                    
+                        elif st.session_state.test_mode == 'voice':
+                            # ===== VOICE MODE FOR ROUNDING OFF QUESTIONS =====
+                            st.write("")
+                            st.write("⏱️ **Time limit: 30 seconds**")
+                        
+                            # Auto-play question audio (no text - audio only)
+                            if st.session_state.part2_current_rounding_question:
+                                question_audio_file = text_to_speech(st.session_state.part2_current_rounding_question)
+                                if question_audio_file:
+                                    st.audio(question_audio_file, format="audio/mp3", autoplay=True)
+                                    st.caption("🔊 Listen to the question")
+                        
+                            # Voice timer logic (actual limit: 40 seconds, but we tell them 30)
+                            if st.session_state.part2_rounding_voice_timer_start is not None:
+                                expired, elapsed, remaining = check_voice_timer_expired(
+                                    st.session_state.part2_rounding_voice_timer_start,
+                                    40  # Actual time limit (10s buffer)
+                                )
+                            
+                                # Auto-skip if expired (no countdown shown)
+                                if expired:
+                                    st.warning("⏰ Time's up! Moving to next question...")
+                                    st.session_state.part2_conversation_history.append({
+                                        'role': 'candidate',
+                                        'content': '[No response - timed out]'
+                                    })
+                                    # Move to next question
+                                    st.session_state.part2_current_rounding_question = ""
+                                    st.session_state.part2_waiting_for_rounding_answer = False
+                                    st.session_state.part2_rounding_questions_answered += 1
+                                    st.session_state.part2_rounding_question_index += 1
+                                    st.session_state.part2_rounding_redirect_count = 0
+                                    st.session_state.part2_rounding_voice_timer_start = None
+                                    st.session_state.part2_rounding_voice_audio_data = None
+                                    time.sleep(1)
+                                    st.rerun()
+                        
+                            # Audio recording widget
+                            audio_key = f"part2_rounding_q{st.session_state.part2_rounding_question_index}_r{st.session_state.part2_rounding_redirect_count}"
+                            audio_input = st.audio_input("🎤 Record your answer", key=audio_key)
+                        
+                            # Start timer when audio widget appears
+                            if st.session_state.part2_rounding_voice_timer_start is None:
+                                st.session_state.part2_rounding_voice_timer_start = time.time()
+                        
+                            # Process audio when user stops recording
+                            if audio_input is not None:
+                                # Transcribe the audio
+                                with st.spinner("Transcribing your answer..."):
+                                    rounding_answer = transcribe_audio(audio_input)
+                            
+                                if rounding_answer:
+                                    # Show simple confirmation (no transcription text - more realistic)
+                                    st.success("✓ Answer transcribed")
+                                
+                                    # Submit button
+                                    if st.button("Submit Answer", key=f"{audio_key}_submit"):
+                                        # Clear audio data and timer
+                                        st.session_state.part2_rounding_voice_timer_start = None
+                                        st.session_state.part2_rounding_voice_audio_data = None
+                                    
+                                        # Check word count limit
+                                        word_count = len(rounding_answer.split())
+                                        if word_count > 65:
+                                            st.error(f"Your answer is {word_count} words. Please record again with 65 words or less.")
+                                            st.rerun()
+                                    
+                                        current_question = st.session_state.part2_current_rounding_question
+                                    
+                                        # Check if we've already redirected once
+                                        if st.session_state.part2_rounding_redirect_count >= 1:
+                                            # Already redirected - move on
+                                            st.session_state.part2_conversation_history.append({
+                                                'role': 'user',
+                                                'content': rounding_answer
+                                            })
+                                        
                                             st.session_state.part2_conversation_history.append({
                                                 'role': 'examiner',
-                                                'content': acknowledgment
+                                                'content': "Thank you. Let's move on."
                                             })
-                                            
-                                            # Move to next question
+                                        
                                             st.session_state.part2_rounding_redirect_count = 0
                                             st.session_state.part2_current_rounding_question = ""
                                             st.session_state.part2_waiting_for_rounding_answer = False
                                             st.session_state.part2_rounding_questions_answered += 1
                                             st.session_state.part2_rounding_question_index += 1
-                                            
+                                        
                                             if st.session_state.part2_rounding_questions_answered >= 2:
                                                 completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
                                                 st.session_state.part2_completion_message = completion_message
                                                 st.session_state.part2_showing_completion = True
-                                                
+                                            
                                                 st.session_state.part2_conversation_history.append({
                                                     'role': 'examiner',
                                                     'content': completion_message
                                                 })
-                                            
+                                        
                                             st.rerun()
                                         else:
-                                            # Irrelevant answer - send redirect
-                                            st.session_state.part2_rounding_redirect_count += 1
+                                            # First answer - check relevance
+                                            context = format_conversation_history(st.session_state.part2_conversation_history[-6:])
+                                            is_relevant, relevance_score = check_relevance(
+                                                rounding_answer,
+                                                current_question,
+                                                context
+                                            )
+                                        
+                                            if is_relevant or relevance_score >= 0.7:
+                                                # Relevant answer
+                                                st.session_state.part2_conversation_history.append({
+                                                    'role': 'user',
+                                                    'content': rounding_answer
+                                                })
                                             
-                                            st.session_state.part2_conversation_history.append({
-                                                'role': 'user',
-                                                'content': rounding_answer
-                                            })
+                                                # Generate acknowledgment
+                                                examiner_prompt = get_examiner_prompt_part2(
+                                                    st.session_state.part2_conversation_history,
+                                                    phase="rounding_off"
+                                                )
+                                                acknowledgment = get_examiner_response(examiner_prompt, st.session_state.part2_conversation_history)
+                                                st.session_state.part2_rounding_acknowledgment = acknowledgment
+                                                st.session_state.part2_conversation_history.append({
+                                                    'role': 'examiner',
+                                                    'content': acknowledgment
+                                                })
                                             
-                                            redirect_message = generate_redirect_message(current_question)
-                                            st.session_state.part2_conversation_history.append({
-                                                'role': 'examiner',
-                                                'content': redirect_message
-                                            })
+                                                # Move to next question
+                                                st.session_state.part2_rounding_redirect_count = 0
+                                                st.session_state.part2_current_rounding_question = ""
+                                                st.session_state.part2_waiting_for_rounding_answer = False
+                                                st.session_state.part2_rounding_questions_answered += 1
+                                                st.session_state.part2_rounding_question_index += 1
                                             
-                                            st.session_state.part2_current_rounding_question = redirect_message
-                                            st.session_state.part2_waiting_for_rounding_answer = True
-                                            st.rerun()
+                                                if st.session_state.part2_rounding_questions_answered >= 2:
+                                                    completion_message = generate_part_completion_message(2, st.session_state.part2_conversation_history)
+                                                    st.session_state.part2_completion_message = completion_message
+                                                    st.session_state.part2_showing_completion = True
+                                                
+                                                    st.session_state.part2_conversation_history.append({
+                                                        'role': 'examiner',
+                                                        'content': completion_message
+                                                    })
+                                            
+                                                st.rerun()
+                                            else:
+                                                # Irrelevant answer - send redirect
+                                                st.session_state.part2_rounding_redirect_count += 1
+                                            
+                                                st.session_state.part2_conversation_history.append({
+                                                    'role': 'user',
+                                                    'content': rounding_answer
+                                                })
+                                            
+                                                redirect_message = generate_redirect_message(current_question)
+                                                st.session_state.part2_conversation_history.append({
+                                                    'role': 'examiner',
+                                                    'content': redirect_message
+                                                })
+                                            
+                                                st.session_state.part2_current_rounding_question = redirect_message
+                                                st.session_state.part2_waiting_for_rounding_answer = True
+                                                st.rerun()
                         
-                        # Auto-refresh after 40 seconds to check for timeout
-                        if st.session_state.part2_rounding_voice_timer_start is not None and audio_input is None:
-                            st_autorefresh(interval=40000, key="part2_rounding_voice_timer")
+                            # Auto-refresh after 40 seconds to check for timeout
+                            if st.session_state.part2_rounding_voice_timer_start is not None and audio_input is None:
+                                st_autorefresh(interval=40000, key="part2_rounding_voice_timer")
     
     elif st.session_state.step == "PART_3":
         st.write("### Part 3: The Discussion")
@@ -2431,8 +2481,8 @@ Now, give a brief acknowledgment."""
                     reset_silence_timer("part3")  # Reset timer for new question
                     st.rerun()
             
-            # Display the current question (with acknowledgment if available)
-            if st.session_state.part3_current_question:
+            # Display the current question (text mode only)
+            if st.session_state.part3_current_question and st.session_state.test_mode == 'text':
                 # If there's an acknowledgment, show it first, then the question
                 if st.session_state.part3_acknowledgment:
                     combined_response = st.session_state.part3_acknowledgment + " " + st.session_state.part3_current_question
@@ -2735,12 +2785,14 @@ Now, give a brief acknowledgment."""
                             question_audio_file = text_to_speech(text_to_speak)
                             if question_audio_file:
                                 st.audio(question_audio_file, format="audio/mp3", autoplay=True)
+                                st.caption("🔊 Listen to the question")
                                 st.session_state.part3_audio_played_key = current_audio_key
                         else:
                             # Audio already played, show it without autoplay
                             question_audio_file = text_to_speech(text_to_speak)
                             if question_audio_file:
                                 st.audio(question_audio_file, format="audio/mp3", autoplay=False)
+                                st.caption("🔊 Listen to the question")
                     
                     # Voice timer logic (actual limit: 70 seconds, but we tell them 60)
                     if st.session_state.part3_voice_timer_start is not None:
@@ -2788,10 +2840,9 @@ Now, give a brief acknowledgment."""
                                 st.session_state.part3_transcribed_answer = user_answer
                                 st.rerun()
                     
-                    # Show transcription and submit button if we have a transcribed answer
+                    # Show simple confirmation and submit button if we have a transcribed answer
                     if st.session_state.part3_transcribed_answer:
-                        st.write("**Your answer (transcribed):**")
-                        st.write(st.session_state.part3_transcribed_answer)
+                        st.success("✓ Answer transcribed")
                         
                         # Submit button
                         if st.button("Submit Answer", key=f"{audio_key}_submit"):
