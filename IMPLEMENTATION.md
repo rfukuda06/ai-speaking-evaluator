@@ -379,30 +379,69 @@ START → ONBOARDING (3 steps) → PART_1 → PART_2 → PART_3 → SCORING
 
 ---
 
-## 📋 Next Steps (Not Yet Implemented)
+## 📋 Next Steps (Implementation Roadmap)
 
+### ✅ Phase 1: Text Mode (COMPLETED)
 - [x] Part 1: Interview questions (text mode) ✅
 - [x] Part 2: Long turn (text mode) ✅
 - [x] Part 3: Deep dive abstract questions (text mode) ✅
 - [x] Results page with CEFR levels and tips ✅
-- [ ] Part 1: Add voice input (STT integration)
-- [ ] Speech-to-Text (STT) integration with Deepgram for all parts
-- [ ] Text-to-Speech (TTS) integration for bot responses
-- [ ] Silence detection (12-second threshold)
 - [x] Examiner LLM prompt (for conversation) ✅
+
+### 🎙️ Phase 2: Voice Integration (COMPLETED)
+- [x] **Mode Selection Screen**
+  - Users choose between Voice Mode and Text Mode before starting Part 1
+  - Choice applies to all parts of the test
+  - Clean UI with clear descriptions of each mode
+- [x] **Voice Output (TTS)**
+  - Integrated OpenAI TTS API (tts-1 model with alloy voice)
+  - Questions auto-play when they appear
+  - "🔄 Replay Question" button for each question
+  - Audio files saved to `/tmp/` directory
+- [x] **Voice Input (STT)**
+  - Integrated OpenAI Whisper API for transcription
+  - Browser-based audio recording using `st.audio_input()`
+  - Real-time transcription feedback with spinner
+  - Transcribed text shown before submission (editable)
+  - Dynamic audio widget keys to reset on new questions/redirects
+- [x] **Hard Cutoff Timers (Voice Mode)**
+  - Replaces silence detection with hard time limits
+  - **Part 1:** 30 seconds displayed, 40 seconds actual (10s buffer)
+  - **Part 2 Long Response:** 120 seconds displayed, 130 seconds actual (10s buffer)
+  - **Part 2 Rounding:** 30 seconds displayed, 40 seconds actual (10s buffer)
+  - **Part 3:** 60 seconds displayed, 70 seconds actual (10s buffer)
+  - No countdown shown to user (exam-like experience)
+  - Auto-skip with "Time's up!" message when time expires
+  - Uses `st_autorefresh` with intervals matching actual time limits
+- [x] **Text Mode (Preserved)**
+  - Text input remains fully functional
+  - Silence detection with check-in messages (original behavior)
+  - All original timing logic preserved
+  - **Part 1:** 30s check-in, 60s auto-skip
+  - **Part 2 Long Response:** 60s check-in, 120s auto-skip
+  - **Part 2 Rounding:** 30s check-in, 60s auto-skip
+  - **Part 3:** 40s check-in, 80s auto-skip
+
+### 📊 Phase 3: Evaluation & Scoring (PLANNED)
 - [ ] Grader LLM prompt (for scoring analysis)
 - [ ] Scoring system (4 buckets: Fluency, Lexical/Grammar, Coherence, Effectiveness)
 - [ ] Actual conversation analysis for accurate CEFR scoring
 - [ ] Personalized feedback based on user performance
+- [ ] Word-per-minute (WPM) calculation from timestamps
+- [ ] Pause distribution analysis
+- [ ] Vocabulary range assessment
+- [ ] Grammar error detection
 - [ ] Progress tracking across multiple test sessions
 
 ---
 
 ## 📝 Notes
 
-- All parts are implemented in **text mode** (user types answers)
-- Voice input/output will be added in Phase 2 of the build plan
+- Both **text mode** and **voice mode** are fully implemented
+- Users choose their preferred mode at the start of the test
 - OpenAI GPT-4o-mini is used for the Examiner role
+- OpenAI TTS (tts-1, alloy voice) is used for question audio
+- OpenAI Whisper is used for speech-to-text transcription
 - Conversation history is stored for later scoring analysis
 - Topics/prompts are randomly generated for variety between test sessions
 - Current scoring shows placeholder B1 level; future versions will analyze actual conversation data

@@ -211,13 +211,25 @@ At the end of the test, the bot provides a "Prep Roadmap" based on the 10 criter
   - Dynamic question generation for all parts
   - Acknowledgment generation
 
-🔄 **Next Steps:**
-- Add voice input (STT) to all parts
-- Integrate TTS for bot responses
-- Integrate STT (Deepgram) with word-level timestamps
-- Implement silence detection (12-second threshold)
-- Build Grader LLM prompt for actual scoring
-- Implement scoring logic (4 buckets: Fluency, Lexical/Grammar, Coherence, Effectiveness)
-- Replace placeholder B1 with data-driven CEFR assessment
-- Add personalized feedback based on conversation analysis
-- Progress tracking across multiple test sessions
+🔄 **In Progress:**
+- **Phase 2: Voice Integration** ✅ (COMPLETED)
+  - Mode selection screen (Voice Mode vs Text Mode)
+  - OpenAI TTS for reading questions aloud (auto-play + replay button)
+  - OpenAI Whisper API for speech-to-text transcription
+  - Browser-based audio recording using `st.audio_input()`
+  - Hard cutoff timers for voice mode (30s/120s/30s/60s with 10s buffer)
+  - Silence detection preserved for text mode
+  - Check-in messages and auto-skip functionality (text mode)
+  - Text input fully preserved as separate mode
+
+📋 **Next Up:**
+
+- **Phase 3: Evaluation & Scoring**
+  - Build Grader LLM prompt for actual scoring
+  - Implement scoring logic (4 buckets: Fluency, Lexical/Grammar, Coherence, Effectiveness)
+  - Replace placeholder B1 with data-driven CEFR assessment
+  - Word-per-minute (WPM) calculation
+  - Pause distribution analysis
+  - Vocabulary and grammar assessment
+  - Add personalized feedback based on conversation analysis
+  - Progress tracking across multiple test sessions
