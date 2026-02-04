@@ -211,13 +211,57 @@ At the end of the test, the bot provides a "Prep Roadmap" based on the 10 criter
   - Dynamic question generation for all parts
   - Acknowledgment generation
 
-🔄 **Next Steps:**
-- Add voice input (STT) to all parts
-- Integrate TTS for bot responses
-- Integrate STT (Deepgram) with word-level timestamps
-- Implement silence detection (12-second threshold)
-- Build Grader LLM prompt for actual scoring
-- Implement scoring logic (4 buckets: Fluency, Lexical/Grammar, Coherence, Effectiveness)
-- Replace placeholder B1 with data-driven CEFR assessment
-- Add personalized feedback based on conversation analysis
-- Progress tracking across multiple test sessions
+🔄 **Recently Completed:**
+
+- **Phase 2: Voice Integration** ✅ (COMPLETED)
+  - Mode selection screen (Voice Mode vs Text Mode) with recommendation banner
+  - OpenAI TTS for reading questions aloud (auto-play, built-in replay)
+  - OpenAI Whisper API for speech-to-text transcription
+  - Word-level timestamps for pause analysis
+  - Browser-based audio recording using `st.audio_input()`
+  - Hard cutoff timers for voice mode (30s/120s/30s/60s with 10s buffer)
+  - Silence detection preserved for text mode
+  - Check-in messages and auto-skip functionality (text mode only)
+  - Text input fully preserved as separate mode
+
+- **Phase 3: Evaluation & Scoring** ✅ (COMPLETED)
+  - **IELTS 1-9 Band Scale Scoring System:**
+    - 5 weighted criteria: Fluency & Coherence (25%), Lexical Resource (20%), Grammatical Range & Accuracy (20%), Coherence & Cohesion (15%), Task Achievement (20%)
+    - Detailed band descriptors for each criterion (Band 9/7/5/3)
+    - Penalty system: -0.5 per timeout, -0.5 per irrelevant answer (applied to Task Achievement)
+  - **Metric Calculation Functions:**
+    - Response metrics (total responses, timeouts, avg word count)
+    - Voice metrics (WPM, pause statistics) - voice mode only
+    - Part-specific metrics (word counts vs ideal ranges per part)
+    - Timeout & relevance counting (pattern matching in conversation history)
+    - Master metrics summary function
+  - **GPT-4 Scoring Integration:**
+    - Comprehensive rubric prompt with all IELTS criteria
+    - Structured JSON response with scores, justifications, feedback
+    - Pause timing markers embedded in transcript for GPT (shows actual pause locations)
+    - Error handling with fallback scoring
+  - **Enhanced Results Page:**
+    - Overall band score display (1-9) with CEFR mapping
+    - Detailed criterion breakdown (expandable sections)
+    - Strengths & areas for improvement
+    - Full conversation history display
+    - Score caching (calculated once, no re-computation on page refresh)
+  - **Word-Level Timestamp Capture (Voice Mode):**
+    - Whisper API configured with `timestamp_granularities=["word"]`
+    - Pause detection between words (>0.3s counted, >1.5s flagged as long)
+    - Pause location markers in transcript: `[pause: X.Xs]`
+    - GPT can distinguish boundary pauses (natural) from mid-clause pauses (disfluent)
+  - **Bug Fixes:**
+    - Irrelevant answers now correctly saved to conversation history
+    - Audio playback properly resets between questions
+    - Transcription state management fixed
+    - Text mode refresh logic optimized (no race conditions)
+
+📋 **Next Up:**
+
+- **Phase 4: Enhancements & Polish**
+  - Progress tracking across multiple test sessions
+  - Export test results as PDF
+  - User accounts and history
+  - Mobile responsiveness improvements
+  - Additional voice options (different accents/speeds)

@@ -170,6 +170,62 @@ START → ONBOARDING (3 steps) → PART_1 → PART_2 → PART_3 → SCORING
 
 **State tracking:** Uses `part3_followups_asked` (0-2) and `part3_first_answer_word_count`.
 
+### IELTS Scoring System (1-9 Band Scale)
+**What it is:** A comprehensive GPT-4 based scoring system that evaluates speaking ability on the official IELTS 1-9 band scale.
+
+**Architecture:**
+1. **Metric Calculation** (Objective): Code-based analysis of conversation data
+   - Response counts, word counts, timeouts, irrelevant answers
+   - Voice metrics: WPM, pause frequency, pause lengths (voice mode only)
+   - Part-specific metrics: Word counts vs ideal ranges
+2. **GPT-4 Assessment** (Subjective): AI analysis with detailed rubric
+   - 5 criteria with band descriptors (9/7/5/3)
+   - Receives formatted metrics + full conversation transcript
+   - Returns structured JSON with scores and justifications
+3. **Weighted Calculation**: Final band = sum of (criterion_score × weight)
+4. **Results Display**: User-friendly breakdown with feedback
+
+**5 Scoring Criteria:**
+1. **Fluency & Coherence (25%)**: WPM 120-160 ideal, pause placement (boundary vs mid-clause), hesitation, flow
+2. **Lexical Resource (20%)**: Appropriate vocabulary range, natural collocation, paraphrasing ability
+3. **Grammatical Range & Accuracy (20%)**: Structure variety, complex attempts (errors OK if clear), effectiveness
+4. **Coherence & Cohesion (15%)**: Linking words, logical organization, idea progression
+5. **Task Achievement (20%)**: Length targets met, relevance, question addressing, penalties applied
+
+**Penalty System:**
+- Timeouts: -0.5 band from Task Achievement each
+- Irrelevant answers: -0.5 band from Task Achievement each
+- Minimum score: 1.0
+
+**Why this approach:** Combines objective metrics (hard data) with subjective assessment (GPT's language understanding) for balanced, accurate scoring similar to human IELTS examiners.
+
+### Word-Level Timestamps & Pause Analysis (Voice Mode)
+**What it is:** Whisper API captures exact timing of each word spoken, enabling precise pause detection and fluency analysis.
+
+**How it works:**
+1. Transcribe audio with `timestamp_granularities=["word"]`
+2. Returns: `{text: "...", words: [{word, start, end}], duration: X}`
+3. Calculate pauses: `next_word.start - current_word.end`
+4. Categorize: <0.3s (ignored), 0.3-1.5s (counted), >1.5s (flagged as long)
+5. Reconstruct text with markers: `[pause: X.Xs]` inserted at actual locations
+6. GPT sees pause-marked transcript and can assess placement (boundary vs mid-clause)
+
+**Why it matters:** 
+- Natural pauses between sentences = good (thinking time)
+- Frequent mid-clause pauses = concerning (processing difficulty)
+- Previous system could only count pauses, not assess placement quality
+- Now GPT has full context to make nuanced fluency judgments
+
+**Example:**
+```
+Candidate: I like to travel. [pause: 2.1s] Because it broadens my mind.
+```
+vs.
+```
+Candidate: I like to [pause: 2.1s] travel because it broadens my mind.
+```
+GPT can tell the first is natural, the second suggests disfluency.
+
 ---
 
 ## 🏗️ Main Building Blocks
@@ -216,6 +272,24 @@ START → ONBOARDING (3 steps) → PART_1 → PART_2 → PART_3 → SCORING
 
 #### Completion Functions
 - **`generate_part_completion_message(part_number, history)`**: Returns fixed transition message
+
+#### Scoring Functions (Phase 3)
+- **`calculate_response_metrics(conversation_history)`**: Calculates basic response statistics
+- **`calculate_voice_metrics(voice_timing_data)`**: Aggregates voice/fluency metrics (WPM, pauses)
+- **`calculate_part_specific_metrics(part1_history, part2_history, part3_history)`**: Per-part word count analysis
+- **`count_timeouts_and_relevance(conversation_history)`**: Scans for timeouts and irrelevant answers
+- **`generate_metrics_summary(...)`**: Master function combining all metrics
+- **`combine_conversation_histories(...)`**: Merges all parts with labels
+- **`format_metrics_for_prompt(metrics)`**: Formats metrics for GPT prompt
+- **`format_full_conversation(combined_history, voice_timing_data)`**: Formats conversation with pause markers
+- **`reconstruct_text_with_pauses(words_data, threshold=0.5)`**: Inserts pause markers into text
+- **`map_band_to_cefr(band_score)`**: Converts IELTS band to CEFR level
+- **`score_speaking_test(...)`**: Main GPT-4 scoring function with IELTS rubric
+
+#### Voice Functions
+- **`transcribe_audio(audio_file, include_timestamps=False)`**: Whisper transcription with optional word-level timestamps
+- **`store_voice_timing_data(part, question, answer, timing_result)`**: Stores timing metrics for each voice response
+- **`text_to_speech(text)`**: OpenAI TTS to generate audio from text
 
 #### UI Functions
 - **`load_css()`**: Reads style.css and injects custom CSS into Streamlit
@@ -278,12 +352,33 @@ START → ONBOARDING (3 steps) → PART_1 → PART_2 → PART_3 → SCORING
 
 ### 8. Scoring/Results Component
 - **Location:** `elif st.session_state.step == "SCORING"` block
-- **Features:**
-  - CEFR levels display (A1-C2)
-  - Placeholder B1 assessment
-  - Improvement tips (3 categories)
-  - External resource link
-  - Retake button (resets all state)
+- **Score Calculation (runs once on first render):**
+  1. Gather all conversation histories and voice timing data
+  2. Call `generate_metrics_summary()` to get objective metrics
+  3. Call `score_speaking_test()` to get GPT-4 assessment
+  4. Cache result in `st.session_state.calculated_scores`
+- **Display Sections:**
+  1. **Full Conversation History** (expandable)
+     - All 3 parts displayed with examiner/candidate labels
+     - Plain text format (no pause markers shown to user)
+  2. **Overall Band Score**
+     - Large, prominent display of final band (1-9)
+     - CEFR level mapping (A1-C2)
+     - Overall feedback summary
+  3. **Detailed Criterion Breakdown** (expandable sections)
+     - Each of 5 criteria shown with band score, weight, justification
+     - Color-coded: Green (7+), Yellow (5-6.9), Red (<5)
+     - Additional details: Notable vocabulary, complex structures, cohesive devices
+     - Task Achievement shows penalty breakdown
+  4. **Strengths & Areas for Improvement**
+     - Two-column layout
+     - Bullet points from GPT analysis
+     - Actionable feedback
+  5. **CEFR Levels Explanation**
+     - A1-C2 descriptions
+     - General improvement tips
+     - External resources
+     - Retake button (resets all state)
 
 ### 9. Debug Controls
 - **Location:** Expandable section at top of `main()`
@@ -379,32 +474,140 @@ START → ONBOARDING (3 steps) → PART_1 → PART_2 → PART_3 → SCORING
 
 ---
 
-## 📋 Next Steps (Not Yet Implemented)
+## 📋 Next Steps (Implementation Roadmap)
 
+### ✅ Phase 1: Text Mode (COMPLETED)
 - [x] Part 1: Interview questions (text mode) ✅
 - [x] Part 2: Long turn (text mode) ✅
 - [x] Part 3: Deep dive abstract questions (text mode) ✅
 - [x] Results page with CEFR levels and tips ✅
-- [ ] Part 1: Add voice input (STT integration)
-- [ ] Speech-to-Text (STT) integration with Deepgram for all parts
-- [ ] Text-to-Speech (TTS) integration for bot responses
-- [ ] Silence detection (12-second threshold)
 - [x] Examiner LLM prompt (for conversation) ✅
-- [ ] Grader LLM prompt (for scoring analysis)
-- [ ] Scoring system (4 buckets: Fluency, Lexical/Grammar, Coherence, Effectiveness)
-- [ ] Actual conversation analysis for accurate CEFR scoring
-- [ ] Personalized feedback based on user performance
-- [ ] Progress tracking across multiple test sessions
+
+### 🎙️ Phase 2: Voice Integration (COMPLETED)
+- [x] **Mode Selection Screen**
+  - Users choose between Voice Mode and Text Mode before starting Part 1
+  - Choice applies to all parts of the test
+  - Clean UI with clear descriptions of each mode
+  - Info banner: "💡 Voice Mode is recommended for the most realistic and accurate speaking assessment"
+  - Voice Mode card labeled as "Recommended"
+- [x] **Voice Output (TTS)**
+  - Integrated OpenAI TTS API (tts-1 model with alloy voice)
+  - Questions auto-play when they appear
+  - "🔄 Replay Question" button for each question
+  - Audio files saved to `/tmp/` directory
+- [x] **Voice Input (STT)**
+  - Integrated OpenAI Whisper API for transcription
+  - Browser-based audio recording using `st.audio_input()`
+  - Real-time transcription feedback with spinner
+  - Transcribed text shown before submission (editable)
+  - Dynamic audio widget keys to reset on new questions/redirects
+- [x] **Hard Cutoff Timers (Voice Mode)**
+  - Replaces silence detection with hard time limits
+  - **Part 1:** 30 seconds displayed, 40 seconds actual (10s buffer)
+  - **Part 2 Long Response:** 120 seconds displayed, 130 seconds actual (10s buffer)
+  - **Part 2 Rounding:** 30 seconds displayed, 40 seconds actual (10s buffer)
+  - **Part 3:** 60 seconds displayed, 70 seconds actual (10s buffer)
+  - No countdown shown to user (exam-like experience)
+  - Auto-skip with "Time's up!" message when time expires
+  - Uses `st_autorefresh` with intervals matching actual time limits
+- [x] **Text Mode (Preserved)**
+  - Text input remains fully functional
+  - Silence detection with check-in messages (original behavior)
+  - All original timing logic preserved
+  - **Part 1:** 30s check-in, 60s auto-skip
+  - **Part 2 Long Response:** 60s check-in, 120s auto-skip
+  - **Part 2 Rounding:** 30s check-in, 60s auto-skip
+  - **Part 3:** 40s check-in, 80s auto-skip
+
+### 📊 Phase 3: Evaluation & Scoring (COMPLETED)
+- [x] **IELTS 1-9 Band Scale Scoring System**
+  - 5 weighted criteria implementation
+  - Fluency & Coherence (25%): WPM, pause analysis, hesitation, flow
+  - Lexical Resource (20%): Vocabulary range, appropriacy, paraphrasing
+  - Grammatical Range & Accuracy (20%): Structure variety, complexity attempts, error tolerance
+  - Coherence & Cohesion (15%): Linking words, logical organization, idea progression
+  - Task Achievement (20%): Response length, relevance, question addressing
+- [x] **Metric Calculation Functions (5 functions)**
+  - `calculate_response_metrics()`: Counts responses, timeouts, avg word count
+  - `calculate_voice_metrics()`: WPM, pause statistics (voice mode only)
+  - `calculate_part_specific_metrics()`: Per-part word counts vs ideal ranges
+  - `count_timeouts_and_relevance()`: Penalty calculation from conversation patterns
+  - `generate_metrics_summary()`: Master function combining all metrics
+- [x] **Helper Functions (4 functions)**
+  - `combine_conversation_histories()`: Merges Part 1, 2, 3 with labels
+  - `format_metrics_for_prompt()`: Formats metrics dict for GPT
+  - `format_full_conversation()`: Formats conversation with pause markers
+  - `map_band_to_cefr()`: Converts band score (1-9) to CEFR level (A1-C2)
+- [x] **GPT-4 Scoring Function**
+  - `score_speaking_test()`: Main scoring function with detailed IELTS rubric
+  - Comprehensive prompt with all band descriptors (9/7/5/3)
+  - Structured JSON response parsing
+  - Error handling with fallback scoring
+  - Temperature 0.3 for consistent scoring
+- [x] **Word-Level Timestamp Capture (Voice Mode)**
+  - Whisper API configured: `response_format="verbose_json"`, `timestamp_granularities=["word"]`
+  - Returns `{text, words: [{word, start, end}], duration}`
+  - Stored in `voice_timing_data` for each response
+  - `store_voice_timing_data()`: Calculates WPM, pauses, metrics
+- [x] **Pause Analysis**
+  - Small pauses (<0.3s): Ignored (natural breathing)
+  - Medium pauses (0.3s-1.5s): Counted
+  - Long pauses (>1.5s): Flagged specifically
+  - Pause location markers: `[pause: X.Xs]` embedded in transcript
+  - GPT can distinguish boundary pauses (good) from mid-clause pauses (concerning)
+- [x] **Enhanced Results Page**
+  - Overall band score display (prominent, color-coded)
+  - CEFR level mapping (A1-C2)
+  - Detailed criterion scores (expandable sections with justifications)
+  - Notable vocabulary, complex structures, cohesive devices shown
+  - Penalty breakdown for Task Achievement
+  - Strengths & areas for improvement (from GPT analysis)
+  - Full conversation history display
+  - Score caching in session state (no re-computation)
+- [x] **Penalty System**
+  - Timeouts: -0.5 band score from Task Achievement each
+  - Irrelevant answers: -0.5 band score from Task Achievement each
+  - Applied to base Task Achievement score
+  - Minimum score floor: 1.0
+- [x] **Ideal Word Count Targets**
+  - Part 1: 20-50 words (too short if <10)
+  - Part 2 Long Response: 150+ ideal, 100+ acceptable (too short if <100)
+  - Part 2 Rounding: 20-50 words (too short if <10)
+  - Part 3: 50-100 words (too short if <30)
+- [x] **Bug Fixes**
+  - Irrelevant answers now correctly saved to conversation history (all parts, both modes)
+  - Audio playback state management fixed (no overlap between questions)
+  - Transcription caching (prevents re-transcription on refresh)
+  - Text mode refresh logic optimized (removed race conditions)
+  - Voice mode single-click submission (added missing `st.rerun()` calls)
 
 ---
 
 ## 📝 Notes
 
-- All parts are implemented in **text mode** (user types answers)
-- Voice input/output will be added in Phase 2 of the build plan
-- OpenAI GPT-4o-mini is used for the Examiner role
-- Conversation history is stored for later scoring analysis
-- Topics/prompts are randomly generated for variety between test sessions
-- Current scoring shows placeholder B1 level; future versions will analyze actual conversation data
+- Both **text mode** and **voice mode** are fully implemented
+- Users choose their preferred mode at the start of the test (voice mode recommended)
+- **OpenAI APIs used:**
+  - GPT-4o-mini: Examiner role (question generation, acknowledgments, redirects)
+  - GPT-4o: Scoring and assessment (detailed IELTS rubric)
+  - TTS-1 (alloy voice): Question audio generation
+  - Whisper: Speech-to-text with word-level timestamps
+- **Scoring system:**
+  - IELTS 1-9 band scale with 5 weighted criteria
+  - Hybrid approach: Objective metrics + GPT-4 subjective assessment
+  - Penalty system for timeouts and irrelevant answers
+  - CEFR mapping (A1-C2)
+- **Voice mode features:**
+  - Word-level timestamp capture for pause analysis
+  - Pause markers embedded in GPT assessment transcript
+  - WPM calculation and fluency metrics
+  - Hard time limits with 10s buffer
+- **Text mode features:**
+  - Silence detection with check-in messages
+  - Adaptive refresh logic (no race conditions)
+  - All original timing logic preserved
+- Conversation history stored with all responses (including irrelevant answers)
+- Topics/prompts randomly generated for variety between test sessions
 - Redirect logic (two-strike policy) applies consistently across all parts
 - Word limits vary by part: Part 1 (65), Part 2 long (400), Part 2 rounding (65), Part 3 (150)
+- Results page shows full scoring breakdown but not detailed voice analytics (kept internal for GPT)
