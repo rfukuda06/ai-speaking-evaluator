@@ -197,8 +197,8 @@ def main():
     
     st.title("AI English Speaking Evaluator")
     
-    # Quick Navigation - Collapsed by default
-    with st.expander("Quick Navigation", expanded=False):
+    # Demo Shortcuts - Collapsed by default
+    with st.expander("Demo Shortcuts", expanded=False):
         st.caption("Use these controls to navigate between sections during development and demonstration.")
         st.write("")
         
@@ -225,14 +225,9 @@ def main():
         st.write("")
         
         # Navigation buttons
-        col1, col2, col3, col4, col5 = st.columns(5)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            if st.button("Start", key="nav_start", use_container_width=True):
-                st.session_state.step = "START"
-                st.rerun()
-        
-        with col2:
             if st.button("Part 1", key="nav_part1", use_container_width=True):
                 # Set voice mode as default if not set
                 if not st.session_state.get('test_mode'):
@@ -241,7 +236,7 @@ def main():
                 initialize_part1()
                 st.rerun()
         
-        with col3:
+        with col2:
             if st.button("Part 2", key="nav_part2", use_container_width=True):
                 # Set voice mode as default if not set
                 if not st.session_state.get('test_mode'):
@@ -249,7 +244,7 @@ def main():
                 st.session_state.step = "PART_2"
                 st.rerun()
         
-        with col4:
+        with col3:
             if st.button("Part 3", key="nav_part3", use_container_width=True):
                 # Set voice mode as default if not set
                 if not st.session_state.get('test_mode'):
@@ -258,7 +253,7 @@ def main():
                 st.session_state.part3_initialized = False
                 st.rerun()
         
-        with col5:
+        with col4:
             if st.button("Results", key="nav_results", use_container_width=True):
                 # Set voice mode as default if not set
                 if not st.session_state.get('test_mode'):
@@ -1770,14 +1765,6 @@ Now, give a brief acknowledgment."""
         # Initialize Part 3 if needed
         if not st.session_state.part3_initialized:
             initialize_part3()
-        
-        # Debug: Show Part 2 prompt and extracted theme
-        with st.expander("Debug Info (Part 3)"):
-            st.write(f"**Part 2 prompt:** {st.session_state.part2_prompt_card.get('main_prompt', 'NOT SET')}")
-            st.write(f"**Extracted theme:** {st.session_state.part3_theme}")
-            st.write(f"**Main questions asked:** {st.session_state.part3_questions_asked}/3")
-            st.write(f"**Follow-ups asked for current question:** {st.session_state.part3_followups_asked}/2")
-            st.write(f"**First answer word count:** {st.session_state.part3_first_answer_word_count} words (>= 30 = only 1 follow-up)")
         
         # Show completion message and button if Part 3 is done
         if st.session_state.part3_showing_completion:
