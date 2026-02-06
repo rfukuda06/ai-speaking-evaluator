@@ -1,4 +1,4 @@
-# IELTS Speaking Assessment
+# AI English Speaking Evaluator
 
 A professional AI-powered English speaking assessment tool that evaluates users through a comprehensive 3-part conversation, providing IELTS-style band scores (1-9) with detailed feedback across multiple criteria.
 
@@ -212,10 +212,4 @@ streamlit run app.py --server.runOnSave true
 - Modular architecture for maintainability
 - Comprehensive error handling with fallbacks
 
-## License
 
-This project is for educational and portfolio purposes.
-
-## Contact
-
-For questions or feedback about this project, please refer to the repository owner's contact information.
