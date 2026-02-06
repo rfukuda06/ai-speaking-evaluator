@@ -1,208 +1,184 @@
 # AI English Speaking Evaluator
 
-A professional AI-powered English speaking assessment tool that evaluates users through a comprehensive 3-part conversation, providing IELTS-style band scores (1-9) with detailed feedback across multiple criteria.
+**Live demo:** [https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)
+
+AI-powered conversational English speaking test that evaluates fluency, grammar, and coherence through a structured multi-part interview. The system generates adaptive questions, analyzes responses using speech + LLM pipelines, and produces IELTS-style band scores (1–9) with detailed feedback.
+
+---
+
+## Demo
+
+Try the live app here: **[https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)**
+
+> *(Optional but highly recommended: add a demo GIF + screenshots here — see “Adding visuals” section below.)*
+
+---
+
+## Overview
+
+This project simulates a professional English speaking exam similar to IELTS. Users complete a 3-part adaptive conversation where responses are analyzed for fluency, vocabulary, grammar, and coherence.
+
+The system combines:
+
+* Real-time speech transcription (voice mode)
+* LLM-based conversational examiner
+* Hybrid scoring engine (objective metrics + GPT evaluation)
+* IELTS-style band scoring with CEFR mapping
+
+---
+
+## Technical Highlights
+
+* Designed a multi-stage conversational **state machine** for a structured speaking exam flow
+* Built a real-time speech pipeline using **Whisper STT** + **OpenAI TTS**
+* Implemented a **hybrid scoring engine** combining objective speech metrics (WPM, pauses) with LLM evaluation
+* Engineered **adaptive questioning** using relevance checks and follow-ups based on response depth
+* Created an IELTS-style rubric with **weighted scoring** across 5 criteria + **CEFR mapping (A1–C2)**
+* Developed a modular codebase separating UI, voice processing, LLM logic, and scoring
+
+---
 
 ## Features
 
-- **Voice Mode**: Natural speech-to-text assessment with real-time transcription and fluency analysis
-- **Text Mode**: Alternative typing-based assessment for quiet environments
-- **IELTS 1-9 Band Scoring**: Comprehensive evaluation across 5 weighted criteria
-- **Adaptive Testing**: Dynamic question generation that builds off user responses
-- **Word-Level Analysis**: Pause detection and speaking rate measurement (voice mode)
-- **Professional UI**: Clean, modern interface optimized for assessment
+### Voice Mode
 
-## Project Structure
+* Real-time speech-to-text transcription
+* Word-level timestamps (when available)
+* Speaking rate (WPM) calculation
+* Pause detection and fluency analysis
+* Automated timing controls
+
+### Text Mode
+
+* Typing-based alternative assessment
+* Silence detection with check-ins / auto-skip
+* Full scoring and feedback preserved
+
+### Adaptive Conversation Engine
+
+* Questions dynamically generated from user responses
+* Follow-ups based on response depth and relevance
+* Two-strike redirect for off-topic answers
+* Theme extraction across sections (Part 2 → Part 3 continuity)
+
+### Professional Scoring
+
+* IELTS **1–9** band scoring
+* 5 weighted criteria:
+
+  * Fluency & Coherence (25%)
+  * Lexical Resource (20%)
+  * Grammar (20%)
+  * Cohesion (15%)
+  * Task Response (20%)
+* CEFR mapping (A1–C2)
+* Detailed strengths + improvement feedback per criterion
+
+---
+
+## System Architecture
 
 ```
-speaking-test/
-├── app.py                   # Main Streamlit application (UI and state machine)
-├── config.py                # Configuration, constants, and API clients
-├── state_management.py      # Session state initialization functions
-├── utils.py                 # General utility functions
-├── voice_functions.py       # Audio/TTS/STT processing
-├── llm_functions.py         # GPT interaction and content generation
-├── scoring.py               # Metrics calculation and IELTS scoring
-├── style.css                # Professional CSS styling
-├── requirements.txt         # Python dependencies
-├── .env                     # API keys (not in git)
-└── .gitignore              # Git ignore rules
+app.py                → Streamlit UI + conversational state machine
+llm_functions.py      → GPT examiner prompts, question generation, scoring calls
+voice_functions.py    → Audio I/O, Whisper STT, timing + pause metrics
+scoring.py            → IELTS rubric, penalties, band score + CEFR mapping
+state_management.py   → Part initialization + session state helpers
+utils.py              → Formatting, timers, general utilities
+config.py             → Models, constants, thresholds, rubric weights
 ```
 
-## Module Breakdown
+---
 
-### `app.py` (~2,690 lines)
-Main application entry point with:
-- Streamlit UI rendering
-- State machine logic (START → ONBOARDING → MODE_SELECTION → PART_1 → PART_2 → PART_3 → SCORING)
-- Session state initialization
-- Quick Navigation panel for demo purposes
+## Test Structure
 
-### `config.py` (~100 lines)
-Configuration and constants:
-- OpenAI API client initialization
-- Model settings (GPT-4o-mini for examiner, GPT-4o for scoring)
-- Part 1 topics and Part 2 categories
-- Word limits and ideal ranges
-- Timer settings for each section
-- Scoring weights and thresholds
-- Pause detection parameters
+### Part 1: Interview
 
-### `utils.py` (~120 lines)
-General utility functions:
-- CSS loader
-- Conversation history formatting
-- Silence detection (text mode check-ins and auto-skip)
-- Part completion messages
-- Timer management
+* 3 topic areas
+* Adaptive follow-up questions
+* Target: concise responses (word limits enforced)
 
-### `state_management.py` (~85 lines)
-Part initialization functions:
-- `initialize_part1()`: Select 3 random topics, assign 2-3 questions per topic
-- `initialize_part2()`: Select category, generate prompt card with GPT
-- `initialize_part3()`: Extract theme from Part 2, reset state
+### Part 2: Long Turn
 
-### `voice_functions.py` (~170 lines)
-Audio processing functions:
-- `text_to_speech()`: OpenAI TTS for question audio
-- `transcribe_audio()`: Whisper STT with optional word-level timestamps
-- `store_voice_timing_data()`: Calculate and store WPM, pause metrics
-- `check_voice_timer_expired()`: Hard timer logic for voice mode
-- Time formatting utilities
+* Generated prompt card + preparation time
+* Extended response + follow-up questions
+* Target: longer response with structure and detail
 
-### `llm_functions.py` (~330 lines)
-GPT-4 interaction functions:
-- Examiner prompt creation (Part 1, 2, 3)
-- Question generation (main and follow-up)
-- Acknowledgment generation
-- Relevance checking
-- Redirect message generation
-- Theme extraction from Part 2
-- Rounding-off question generation
+### Part 3: Discussion
 
-### `scoring.py` (~350 lines)
-Scoring and metrics:
-- Response metrics calculation (word counts, timeouts)
-- Voice metrics aggregation (WPM, pauses)
-- Part-specific analysis
-- Penalty counting
-- IELTS band score calculation with GPT-4
-- Comprehensive rubric with 5 weighted criteria
-- CEFR level mapping (A1-C2)
+* Theme extracted from Part 2
+* Higher-level reasoning questions
+* Dynamic follow-ups based on response depth
 
-## Installation
+---
 
-### Prerequisites
-- Python 3.8+
-- OpenAI API key
+## Technologies
 
-### Setup
+* **Frontend/UI:** Streamlit
+* **LLM:** OpenAI GPT-4o-mini (examiner), GPT-4o (scoring)
+* **STT:** OpenAI Whisper (with word-level timestamps when supported)
+* **TTS:** OpenAI TTS
+* **Styling:** Custom CSS
+* **Language:** Python
 
-1. Clone the repository:
+---
+
+## Why I Built This
+
+Traditional English speaking exams (IELTS/TOEFL) can be expensive, stressful, and difficult to access consistently—especially for global learners who want frequent practice and actionable feedback. I built this project to explore how modern LLMs and speech models can simulate a realistic speaking test experience: adaptive questioning, real-time fluency metrics, and detailed rubric-based scoring that helps learners improve between attempts.
+
+---
+
+## Running Locally
+
+Clone the repo:
+
 ```bash
-git clone <repository-url>
-cd speaking-test
+git clone https://github.com/YOUR_USERNAME/ai-english-speaking-evaluator.git
+cd ai-english-speaking-evaluator
 ```
 
-2. Create a virtual environment:
+Create and activate a virtual environment:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Install dependencies:
+Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the project root:
-```bash
-OPENAI_API_KEY=your_api_key_here
+Create a `.env` file:
+
+```text
+OPENAI_API_KEY=your_key_here
 ```
 
-5. Run the application:
+Run:
+
 ```bash
 streamlit run app.py
 ```
 
-## Test Flow
+---
 
-### Part 1: The Interview (2-3 minutes)
-- 3 randomly selected topics
-- 2-3 questions per topic (randomized)
-- Questions build off previous relevant answers
-- **Word limit**: 65 words per response
-- **Redirect logic**: Two-strike policy for off-topic answers
+## Adding Visuals (Recommended)
 
-### Part 2: The Long Turn (3-4 minutes)
-- GPT-generated prompt card with 3-4 bullet points
-- 60-second preparation time
-- **Main response**: 150+ words ideal (100+ acceptable, 400 max)
-- 2 rounding-off follow-up questions
-- **Rounding word limit**: 20-50 words ideal (65 max)
+Add a short GIF + a few screenshots so recruiters can understand the product in 5 seconds.
 
-### Part 3: The Discussion (4-5 minutes)
-- Theme extracted from Part 2 prompt
-- 3 main questions with adaptive follow-ups
-- **Follow-up logic**: 1-2 follow-ups based on response length
-- **Word limit**: 50-100 words ideal (150 max)
+1. Record a 15–25s walkthrough (start test → answer → results) and save as `demo.gif`
+2. Take screenshots (main UI, voice mode, results) as `screenshot1.png`, `screenshot2.png`, `screenshot3.png`
+3. Put the files in the repo root (or `/assets`) and add this under the **Demo** section:
 
-### Scoring
-- IELTS 1-9 band scale
-- 5 weighted criteria (Fluency 25%, Lexical 20%, Grammar 20%, Cohesion 15%, Task 20%)
-- Penalties: -0.5 per timeout/irrelevant answer
-- CEFR mapping (A1-C2)
-- Detailed feedback with strengths and improvements
+```md
+### Demo Walkthrough
+![Demo](demo.gif)
 
-## Technologies
-
-- **Frontend**: Streamlit
-- **LLM**: OpenAI GPT-4o-mini (examiner), GPT-4o (scoring)
-- **TTS**: OpenAI TTS-1 (alloy voice)
-- **STT**: OpenAI Whisper with word-level timestamps
-- **Styling**: Custom CSS with professional dark theme
-- **State Management**: Streamlit session_state
-
-## Key Features
-
-### Voice Mode
-- Natural speech assessment
-- Word-level timestamp capture
-- Pause detection and analysis
-- Speaking rate (WPM) calculation
-- Automated timing controls
-
-### Text Mode
-- Typing-based alternative
-- Silence detection with check-ins
-- Auto-skip for inactive users
-- Full functionality preserved
-
-### Adaptive Logic
-- Questions build off previous responses
-- Dynamic follow-up counts based on answer length
-- Two-strike redirect policy for irrelevant answers
-- Automatic theme extraction and continuation
-
-### Professional Scoring
-- Objective metrics (word count, WPM, pauses)
-- Subjective GPT-4 assessment (vocabulary, grammar, coherence)
-- Hybrid approach for balanced evaluation
-- Detailed criterion breakdown with justifications
-
-## Quick Navigation
-
-The app includes a "Quick Navigation" panel for demonstration purposes, allowing you to:
-- Switch between voice and text modes
-- Jump to any section (Start, Part 1, Part 2, Part 3, Results)
-- Test specific features without completing the full assessment
-
-This feature is intended for portfolio reviewers and developers, not for production exam use.
-
-## Development
-
-### Running in Development Mode
-```bash
-streamlit run app.py --server.runOnSave true
+### Screenshots
+![Interface](screenshot1.png)
+![Voice Mode](screenshot2.png)
+![Results](screenshot3.png)
 ```
-
-
