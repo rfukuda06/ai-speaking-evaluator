@@ -1,3 +1,483 @@
-/* Custom styles for Speaking Test app */
+/* Professional Speaking Test Application Styles - Dark Background Compatible */
 
-/* Add your custom styles here */
+/* ==================== ROOT VARIABLES ==================== */
+:root {
+    --primary-color: #FFFFFF;
+    --accent-teal: #1ABC9C;
+    --accent-coral: #FF6B6B;
+    --accent-gold: #F39C12;
+    --success-green: #2ECC71;
+    --warning-orange: #E67E22;
+    --error-red: #E74C3C;
+    --text-white: #FFFFFF;
+    --text-light: #ECF0F1;
+    --text-gray: #BDC3C7;
+    --background-white: #FFFFFF;
+    --background-card: rgba(255, 255, 255, 0.05);
+    --background-card-hover: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.15);
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ==================== GLOBAL STYLES ==================== */
+.main {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Main title styling */
+h1 {
+    color: var(--text-white) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.5px !important;
+    margin-bottom: 2rem !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Section headers */
+h2, h3 {
+    color: var(--text-white) !important;
+    font-weight: 500 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+h2 {
+    border-bottom: 2px solid var(--border-light);
+    padding-bottom: 0.5rem;
+}
+
+/* Regular text */
+p, div, span, li {
+    color: var(--text-light) !important;
+    line-height: 1.6;
+}
+
+/* Strong/bold text */
+strong, b {
+    color: var(--text-white) !important;
+}
+
+/* ==================== BUTTONS ==================== */
+/* Primary button (main actions) */
+.stButton > button[kind="primary"],
+.stButton > button[type="primary"] {
+    background: linear-gradient(135deg, var(--accent-teal), #16A085) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 2rem !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3) !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+.stButton > button[type="primary"]:hover {
+    background: linear-gradient(135deg, #16A085, var(--accent-teal)) !important;
+    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Secondary buttons */
+.stButton > button {
+    background-color: var(--background-card) !important;
+    color: var(--text-white) !important;
+    border: 2px solid var(--border-light) !important;
+    border-radius: 6px !important;
+    padding: 0.6rem 1.5rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button:hover {
+    border-color: var(--accent-teal) !important;
+    background-color: var(--background-card-hover) !important;
+    color: var(--accent-teal) !important;
+}
+
+/* Submit buttons */
+.stButton > button[type="submit"] {
+    background: linear-gradient(135deg, var(--success-green), #27AE60) !important;
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3) !important;
+}
+
+.stButton > button[type="submit"]:hover {
+    background: linear-gradient(135deg, #27AE60, var(--success-green)) !important;
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ==================== FORM INPUTS ==================== */
+/* Text inputs and text areas */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    border: 2px solid var(--border-light) !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease !important;
+    background-color: var(--background-card) !important;
+    color: var(--text-white) !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: var(--accent-teal) !important;
+    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.2) !important;
+    outline: none !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.stTextInput > div > div > input::placeholder,
+.stTextArea > div > div > textarea::placeholder {
+    color: var(--text-gray) !important;
+}
+
+/* Input labels and captions */
+.stTextInput label,
+.stTextArea label {
+    color: var(--text-white) !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* ==================== INFO BOXES ==================== */
+/* Info boxes */
+.stAlert {
+    border-radius: 8px !important;
+    border: none !important;
+    padding: 1rem 1.25rem !important;
+    margin: 1rem 0 !important;
+}
+
+/* Info (teal/cyan) */
+[data-baseweb="notification"][kind="info"] {
+    background-color: rgba(26, 188, 156, 0.15) !important;
+    color: var(--text-white) !important;
+    border-left: 4px solid var(--accent-teal) !important;
+}
+
+/* Success (green) */
+[data-baseweb="notification"][kind="success"] {
+    background-color: rgba(46, 204, 113, 0.15) !important;
+    color: var(--text-white) !important;
+    border-left: 4px solid var(--success-green) !important;
+}
+
+/* Warning (orange) */
+[data-baseweb="notification"][kind="warning"] {
+    background-color: rgba(230, 126, 34, 0.15) !important;
+    color: var(--text-white) !important;
+    border-left: 4px solid var(--warning-orange) !important;
+}
+
+/* Error (red) */
+[data-baseweb="notification"][kind="error"] {
+    background-color: rgba(231, 76, 60, 0.15) !important;
+    color: var(--text-white) !important;
+    border-left: 4px solid var(--error-red) !important;
+}
+
+/* ==================== CAPTIONS ==================== */
+.stCaption, .stCaptionContainer {
+    color: var(--text-gray) !important;
+    font-size: 0.875rem !important;
+}
+
+/* ==================== PROGRESS BAR ==================== */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, var(--accent-teal), var(--accent-coral)) !important;
+}
+
+.stProgress > div > div > div {
+    background-color: var(--background-card) !important;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+}
+
+/* ==================== EXPANDER ==================== */
+.streamlit-expanderHeader {
+    background-color: var(--background-card) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-light) !important;
+    padding: 0.75rem 1rem !important;
+    font-weight: 500 !important;
+    color: var(--text-white) !important;
+}
+
+.streamlit-expanderHeader:hover {
+    border-color: var(--accent-teal) !important;
+    background-color: var(--background-card-hover) !important;
+}
+
+.streamlit-expanderContent {
+    padding: 1.5rem;
+    background-color: var(--background-card);
+    border: 1px solid var(--border-light);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+/* ==================== COLUMNS ==================== */
+.stColumn {
+    padding: 0 0.5rem;
+}
+
+/* ==================== AUDIO WIDGET ==================== */
+audio {
+    width: 100%;
+    margin: 0.5rem 0;
+    border-radius: 8px;
+}
+
+/* ==================== SPINNER ==================== */
+.stSpinner > div {
+    border-color: var(--accent-teal) transparent transparent transparent !important;
+}
+
+/* ==================== MARKDOWN ==================== */
+.stMarkdown {
+    color: var(--text-light);
+}
+
+.stMarkdown a {
+    color: var(--accent-teal) !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid var(--accent-teal);
+    transition: all 0.3s ease;
+}
+
+.stMarkdown a:hover {
+    border-bottom: 2px solid var(--accent-teal);
+    color: #16A085 !important;
+}
+
+.stMarkdown ul, .stMarkdown ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.stMarkdown li {
+    margin-bottom: 0.25rem;
+    color: var(--text-light) !important;
+}
+
+/* ==================== HORIZONTAL RULE ==================== */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--border-light) !important;
+    margin: 2rem 0 !important;
+    opacity: 0.5;
+}
+
+/* ==================== RADIO BUTTONS ==================== */
+.stRadio > div {
+    gap: 1rem;
+}
+
+.stRadio label {
+    color: var(--text-white) !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 6px !important;
+    transition: background-color 0.3s ease !important;
+}
+
+.stRadio label:hover {
+    background-color: var(--background-card-hover) !important;
+}
+
+/* ==================== FORM STYLING ==================== */
+form {
+    background-color: var(--background-card);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow);
+}
+
+/* ==================== LAYOUT ==================== */
+.block-container {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+    max-width: 900px !important;
+}
+
+/* ==================== SCORE DISPLAY ==================== */
+/* Large centered score number */
+div[data-testid="column"] h1 {
+    text-align: center;
+    font-size: 4rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-coral));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 1rem 0 !important;
+}
+
+/* ==================== CRITERION SCORE BADGES ==================== */
+/* Style the score indicators in expanders */
+.streamlit-expanderHeader strong {
+    font-weight: 600;
+}
+
+/* ==================== TYPOGRAPHY REFINEMENTS ==================== */
+h1 {
+    font-size: 2.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+h2 {
+    font-size: 1.75rem !important;
+}
+
+h3 {
+    font-size: 1.25rem !important;
+    color: var(--text-light) !important;
+}
+
+h4 {
+    color: var(--text-white) !important;
+    font-weight: 500 !important;
+}
+
+/* ==================== SPACING ==================== */
+.element-container + .element-container {
+    margin-top: 0.5rem;
+}
+
+.stMarkdown p {
+    margin-bottom: 0.75rem;
+}
+
+/* ==================== INFO BOX TEXT ==================== */
+/* Make info box content more readable */
+[data-baseweb="notification"] p,
+[data-baseweb="notification"] div {
+    color: var(--text-white) !important;
+}
+
+/* ==================== FORM BUTTON STYLING ==================== */
+/* Form submit buttons - make them stand out */
+form button[kind="primaryFormSubmit"],
+form button[type="submit"] {
+    background: linear-gradient(135deg, var(--accent-teal), #16A085) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 2rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3) !important;
+}
+
+form button[kind="primaryFormSubmit"]:hover,
+form button[type="submit"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4) !important;
+}
+
+/* ==================== AUDIO RECORDER WIDGET ==================== */
+/* Style audio input widget */
+[data-testid="stAudioInput"] {
+    background-color: var(--background-card) !important;
+    border: 2px solid var(--border-light) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+}
+
+[data-testid="stAudioInput"] label {
+    color: var(--text-white) !important;
+    font-weight: 500 !important;
+}
+
+/* ==================== CONVERSATION DISPLAY ==================== */
+/* Better formatting for conversation history */
+.streamlit-expanderContent p {
+    line-height: 1.7;
+    color: var(--text-light) !important;
+}
+
+.streamlit-expanderContent strong {
+    color: var(--text-white) !important;
+}
+
+/* ==================== CUSTOM HIGHLIGHTS ==================== */
+/* Highlight important information */
+.stMarkdown code {
+    background-color: var(--background-card);
+    color: var(--accent-teal);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* ==================== SPINNER TEXT ==================== */
+.stSpinner > div > div {
+    color: var(--text-white) !important;
+}
+
+/* ==================== TABLE STYLING (if needed) ==================== */
+table {
+    color: var(--text-light) !important;
+    border-color: var(--border-light) !important;
+}
+
+th {
+    color: var(--text-white) !important;
+    background-color: var(--background-card) !important;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    div[data-testid="column"] h1 {
+        font-size: 3rem !important;
+    }
+    
+    h1 {
+        font-size: 2rem !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* ==================== SPECIAL COMPONENTS ==================== */
+/* Score breakdown expanders - add visual hierarchy */
+div[data-testid="stExpander"]:has(strong) {
+    margin: 0.75rem 0;
+}
+
+/* Improve caption visibility */
+.stTextInput > label > div > p,
+.stTextArea > label > div > p {
+    color: var(--text-gray) !important;
+    font-size: 0.85rem !important;
+}
+
+/* ==================== SCROLLBAR (for text areas) ==================== */
+textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: var(--background-card);
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 4px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--text-gray);
+}
