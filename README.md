@@ -1,8 +1,6 @@
 # AI English Speaking Evaluator
 
-**Live demo:** [https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)
-
-AI-powered conversational English speaking test that evaluates fluency, grammar, and coherence through a structured multi-part interview. The system generates adaptive questions, analyzes responses using speech + LLM pipelines, and produces IELTS-style band scores (1–9) with detailed feedback.
+An AI-powered conversational English speaking test that evaluates fluency, grammar, and coherence through a structured multi-part interview. The system generates adaptive questions, analyzes responses using speech + LLM pipelines, and produces IELTS-style band scores (1–9) with detailed feedback.
 
 ---
 
