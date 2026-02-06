@@ -71,6 +71,8 @@ if 'part1_current_topic_index' not in st.session_state:
     st.session_state.part1_current_topic_index = 0
 if 'part1_questions_asked' not in st.session_state:
     st.session_state.part1_questions_asked = 0  # Questions asked for current topic
+if 'part1_questions_per_topic' not in st.session_state:
+    st.session_state.part1_questions_per_topic = []  # Target questions for each topic (2 or 3)
 if 'part1_conversation_history' not in st.session_state:
     st.session_state.part1_conversation_history = []  # Store all Q&A for scoring
 if 'part1_waiting_for_answer' not in st.session_state:
@@ -232,6 +234,8 @@ def initialize_part1():
     if not st.session_state.part1_initialized:
         # Randomly select 3 topics
         st.session_state.part1_topics = random.sample(PART1_TOPICS, 3)
+        # Randomly assign 2 or 3 questions for each topic (50/50 chance)
+        st.session_state.part1_questions_per_topic = [random.choice([2, 3]) for _ in range(3)]
         st.session_state.part1_initialized = True
         st.session_state.part1_current_topic_index = 0
         st.session_state.part1_questions_asked = 0
@@ -1601,60 +1605,6 @@ def main():
     load_css()
     
     st.title("🎙️ AI Speaking Examiner")
-    
-    # Debug controls (temporary)
-    with st.expander("🛠️ Debug Controls (Skip to Part)"):
-        # Test mode selector - default to current test_mode if set
-        current_mode_index = 0  # Default to Voice
-        if st.session_state.test_mode == 'text':
-            current_mode_index = 1
-        elif st.session_state.test_mode == 'voice':
-            current_mode_index = 0
-        
-        debug_mode = st.radio(
-            "Test Mode:", 
-            ["Voice", "Text"], 
-            index=current_mode_index,
-            horizontal=True, 
-            key="debug_mode_selector"
-        )
-        
-        # Show current mode if set
-        if st.session_state.test_mode is not None:
-            st.write(f"**Current mode:** {st.session_state.test_mode.title()}")
-        else:
-            st.write("**Current mode:** Not selected yet")
-        
-        # Button to apply mode change from debug radio
-        if st.button("Apply Mode Change", key="apply_debug_mode"):
-            if debug_mode == "Voice":
-                st.session_state.test_mode = 'voice'
-            else:
-                st.session_state.test_mode = 'text'
-            st.rerun()
-        
-        st.write("---")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            if st.button("Skip to Part 1"):
-                st.session_state.step = "PART_1"
-                initialize_part1()
-                st.rerun()
-        with col2:
-            if st.button("Skip to Part 2"):
-                st.session_state.step = "PART_2"
-                st.rerun()
-        with col3:
-            if st.button("Skip to Part 3"):
-                st.session_state.step = "PART_3"
-                # Reset Part 3 state for fresh start
-                st.session_state.part3_initialized = False
-                st.rerun()
-        with col4:
-            if st.button("Skip to Results"):
-                st.session_state.step = "SCORING"
-                st.rerun()
 
     if st.session_state.step == "START":
         st.write("Hello! Ready to start your English test?")
@@ -1705,36 +1655,37 @@ def main():
                     st.rerun()
 
     elif st.session_state.step == "MODE_SELECTION":
-        # Let user choose between voice mode and text mode
-        st.write("### Choose Your Test Mode")
+        # Voice mode as primary option
+        st.write("### Ready to Begin Your Speaking Test")
         st.write("")
-        st.info("💡 **Voice Mode is recommended** for the most realistic and accurate speaking assessment.")
-        st.write("")
-        st.write("How would you like to take the test?")
+        st.write("Speak your answers naturally using your microphone for the most realistic IELTS experience.")
         st.write("")
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 🎤 Voice Mode (Recommended)")
-            st.write("**Speak your answers**")
-            st.write("• More natural and realistic")
-            st.write("• Tests your actual speaking ability")
-            st.write("• Best for accurate assessment")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.write("**Why Voice Mode?**")
+            st.write("✓ Tests your actual speaking ability")
+            st.write("✓ Natural conversation flow")
+            st.write("✓ Authentic IELTS-style assessment")
+            st.write("✓ More accurate fluency and pronunciation analysis")
             st.write("")
-            if st.button("Select Voice Mode", use_container_width=True):
+            st.write("")
+            if st.button("🎙️ Start Test with Voice Mode", use_container_width=True, type="primary"):
                 st.session_state.test_mode = 'voice'
                 st.session_state.step = "PART_1"
                 st.rerun()
         
-        with col2:
-            st.markdown("#### ⌨️ Text Mode")
-            st.write("**Type your answers**")
-            st.write("• Faster for some users")
-            st.write("• Good for testing in quiet environments")
-            st.write("• Still provides accurate scoring")
+        st.write("")
+        st.write("")
+        st.write("---")
+        
+        # Small text mode alternative at the bottom
+        with st.expander("⌨️ Alternative: Text Mode (if microphone is unavailable)", expanded=False):
+            st.caption("Use this option only if you cannot use a microphone or are in a location where speaking aloud is not possible.")
             st.write("")
-            if st.button("Select Text Mode", use_container_width=True):
+            st.write("**Note:** Text mode provides a simplified assessment and may not reflect your true speaking ability.")
+            st.write("")
+            if st.button("Continue with Text Mode", use_container_width=True):
                 st.session_state.test_mode = 'text'
                 st.session_state.step = "PART_1"
                 st.rerun()
@@ -1763,8 +1714,9 @@ def main():
             
             # If we haven't asked the first question yet, or we're ready for a new question
             if not st.session_state.part1_waiting_for_answer and st.session_state.part1_current_question == "":
-                # FIRST: Check if we've already asked 3 questions for this topic
-                if st.session_state.part1_questions_asked >= 3:
+                # FIRST: Check if we've already asked target number of questions for this topic
+                target_questions = st.session_state.part1_questions_per_topic[st.session_state.part1_current_topic_index]
+                if st.session_state.part1_questions_asked >= target_questions:
                     # We've completed this topic - move to next topic
                     st.session_state.part1_current_topic_index += 1
                     st.session_state.part1_questions_asked = 0
@@ -1937,12 +1889,13 @@ Now, ask your question."""
                                 # Reset redirect count since answer is relevant
                                 st.session_state.part1_redirect_count = 0
                                 
-                                # Store this answer to build off for next question (if not the 3rd question)
-                                if st.session_state.part1_questions_asked < 3:
+                                # Store this answer to build off for next question (if not the last question)
+                                target_questions = st.session_state.part1_questions_per_topic[st.session_state.part1_current_topic_index]
+                                if st.session_state.part1_questions_asked < target_questions:
                                     st.session_state.part1_last_relevant_answer = user_answer
                                     st.session_state.part1_should_build_off = True
                                 else:
-                                    # This is the 3rd question, don't build off
+                                    # This is the last question for this topic, don't build off
                                     st.session_state.part1_should_build_off = False
                                     st.session_state.part1_last_relevant_answer = ""
                                 
@@ -2143,8 +2096,9 @@ Now, give a brief acknowledgment."""
                                     
                                     st.session_state.part1_redirect_count = 0
                                     
-                                    # Store answer for build-off logic
-                                    if st.session_state.part1_questions_asked < 3:
+                                    # Store answer for build-off logic (if not the last question)
+                                    target_questions = st.session_state.part1_questions_per_topic[st.session_state.part1_current_topic_index]
+                                    if st.session_state.part1_questions_asked < target_questions:
                                         st.session_state.part1_last_relevant_answer = user_answer
                                         st.session_state.part1_should_build_off = True
                                     else:
