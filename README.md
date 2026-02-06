@@ -8,7 +8,11 @@ An AI-powered conversational English speaking test that evaluates fluency, gramm
 
 Try the live app here: **[https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)**
 
-> *(Optional but highly recommended: add a demo GIF + screenshots here — see “Adding visuals” section below.)*
+### Quick Demo (1 min)
+
+https://github.com/rfukuda06/speaking_test/demo.mp4
+
+> *Note: Once you upload the video to GitHub, replace the path above with the actual path. GitHub will automatically embed and play the video.*
 
 ---
 
@@ -163,20 +167,6 @@ streamlit run app.py
 
 ---
 
-## Adding Visuals (Recommended)
+## Contact
 
-Add a short GIF + a few screenshots so recruiters can understand the product in 5 seconds.
-
-1. Record a 15–25s walkthrough (start test → answer → results) and save as `demo.gif`
-2. Take screenshots (main UI, voice mode, results) as `screenshot1.png`, `screenshot2.png`, `screenshot3.png`
-3. Put the files in the repo root (or `/assets`) and add this under the **Demo** section:
-
-```md
-### Demo Walkthrough
-![Demo](demo.gif)
-
-### Screenshots
-![Interface](screenshot1.png)
-![Voice Mode](screenshot2.png)
-![Results](screenshot3.png)
-```
+Questions or feedback? Feel free to reach out or open an issue.
