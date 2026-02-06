@@ -10,9 +10,6 @@ Try the live app here: **[https://ai-speaking-evaluator.streamlit.app](https://a
 
 ### Quick Demo (1 min)
 
-https://github.com/rfukuda06/speaking_test/demo.mp4
-
-> *Note: Once you upload the video to GitHub, replace the path above with the actual path. GitHub will automatically embed and play the video.*
 
 ---
 
