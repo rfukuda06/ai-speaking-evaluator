@@ -205,11 +205,4 @@ This feature is intended for portfolio reviewers and developers, not for product
 streamlit run app.py --server.runOnSave true
 ```
 
-### Project Guidelines
-- All functionality tested in both voice and text modes
-- No emojis in production code
-- Professional styling consistent throughout
-- Modular architecture for maintainability
-- Comprehensive error handling with fallbacks
-
 
