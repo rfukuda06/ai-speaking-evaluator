@@ -6,10 +6,18 @@ An AI-powered conversational English speaking test that evaluates fluency, gramm
 
 ## Demo
 
-Try the live app here: **[https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)**
+**Try the live app:** [https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)
 
-### Quick Demo (1 min)
+### Screenshots
 
+**Mode Selection - Choose between voice or text mode**
+![Mode Selection](modeselection.png)
+
+**Live Test Interface - Part 1 with audio questions and voice recording**
+![Part 1 Test](part1.png)
+
+**Results - IELTS band scoring with CEFR level mapping**
+![CEFR Grade Results](cefrgrade.png)
 
 ---
 
@@ -124,7 +132,7 @@ config.py             → Models, constants, thresholds, rubric weights
 
 ## Why I Built This
 
-Traditional English speaking exams (IELTS/TOEFL) can be expensive, stressful, and difficult to access consistently—especially for global learners who want frequent practice and actionable feedback. I built this project to explore how modern LLMs and speech models can simulate a realistic speaking test experience: adaptive questioning, real-time fluency metrics, and detailed rubric-based scoring that helps learners improve between attempts.
+Many people in my family are Spanish speakers and wanted a way to practice spoken English without feeling judged. I built this to provide a low-pressure, realistic speaking test experience with adaptive questions and rubric-based feedback powered by speech + LLM evaluation.
 
 ---
 
