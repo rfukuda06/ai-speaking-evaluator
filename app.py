@@ -13,6 +13,13 @@ from llm_functions import (get_examiner_prompt, get_examiner_prompt_part2, get_e
                            extract_theme_from_part2, generate_part3_question, generate_part3_acknowledgment)
 from scoring import (generate_metrics_summary, score_speaking_test, get_cefr_description)
 
+st.set_page_config(
+    page_title="AI English Speaking Evaluator",
+    page_icon="🎙️",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
+
 if 'step' not in st.session_state:
     st.session_state.step = "START"
 
@@ -196,19 +203,18 @@ def main():
     load_css()
     
     st.title("AI English Speaking Evaluator")
-    
-    # Demo Shortcuts - Collapsed by default
-    with st.expander("Demo Shortcuts", expanded=False):
-        st.caption("Use these controls to navigate between sections during development and demonstration.")
-        st.write("")
-        
-        # Mode switcher - always visible
+    st.caption("Use the ≫ arrow at the top left to open the demo panel and skip between sections.")
+
+    # Demo panel in sidebar (collapsed by default — open via arrow)
+    with st.sidebar:
+        st.markdown("### Demo Panel")
+        st.caption("Skip ahead to any section for demo purposes.")
+        st.write("---")
+
+        # Mode switcher
+        st.markdown("**Test Mode**")
         current_mode = st.session_state.get('test_mode')
-        if current_mode:
-            st.write(f"**Test Mode:** {current_mode.title()}")
-        else:
-            st.write("**Test Mode:** Not selected (defaults to Voice)")
-        
+        st.write(f"Current: {current_mode.title() if current_mode else 'Not selected'}")
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             if st.button("Voice Mode", key="nav_voice", use_container_width=True):
@@ -218,129 +224,100 @@ def main():
             if st.button("Text Mode", key="nav_text", use_container_width=True):
                 st.session_state.test_mode = 'text'
                 st.rerun()
-        
-        st.write("")
+
         st.write("---")
-        st.write("**Jump to Section:**")
-        st.write("")
-        
-        # Navigation buttons
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            if st.button("Part 1", key="nav_part1", use_container_width=True):
-                # Set voice mode as default if not set
-                if not st.session_state.get('test_mode'):
-                    st.session_state.test_mode = 'voice'
-                st.session_state.step = "PART_1"
-                initialize_part1()
-                st.rerun()
-        
-        with col2:
-            if st.button("Part 2", key="nav_part2", use_container_width=True):
-                # Set voice mode as default if not set
-                if not st.session_state.get('test_mode'):
-                    st.session_state.test_mode = 'voice'
-                st.session_state.step = "PART_2"
-                st.rerun()
-        
-        with col3:
-            if st.button("Part 3", key="nav_part3", use_container_width=True):
-                # Set voice mode as default if not set
-                if not st.session_state.get('test_mode'):
-                    st.session_state.test_mode = 'voice'
-                st.session_state.step = "PART_3"
-                st.session_state.part3_initialized = False
-                st.rerun()
-        
-        with col4:
-            if st.button("Results", key="nav_results", use_container_width=True):
-                # Set voice mode as default if not set
-                if not st.session_state.get('test_mode'):
-                    st.session_state.test_mode = 'voice'
-                st.session_state.step = "SCORING"
-                st.rerun()
+
+        # Section navigation
+        st.markdown("**Jump to Section**")
+        if st.button("Part 1 — Interview", key="nav_part1", use_container_width=True):
+            if not st.session_state.get('test_mode'):
+                st.session_state.test_mode = 'voice'
+            st.session_state.step = "PART_1"
+            initialize_part1()
+            st.rerun()
+        if st.button("Part 2 — Long Turn", key="nav_part2", use_container_width=True):
+            if not st.session_state.get('test_mode'):
+                st.session_state.test_mode = 'voice'
+            st.session_state.step = "PART_2"
+            st.rerun()
+        if st.button("Part 3 — Discussion", key="nav_part3", use_container_width=True):
+            if not st.session_state.get('test_mode'):
+                st.session_state.test_mode = 'voice'
+            st.session_state.step = "PART_3"
+            st.session_state.part3_initialized = False
+            st.rerun()
+        if st.button("View Results", key="nav_results", use_container_width=True):
+            if not st.session_state.get('test_mode'):
+                st.session_state.test_mode = 'voice'
+            st.session_state.step = "SCORING"
+            st.rerun()
 
     if st.session_state.step == "START":
         st.write("Hello! Ready to start your English test?")
         if st.button("Begin"):
-            # When user clicks Begin, move to ONBOARDING (not directly to PART_1)
             st.session_state.step = "ONBOARDING"
-            st.session_state.onboarding_step = 0  # Start at the first onboarding message
-            st.rerun()  # Refresh the page to show the new state
+            st.session_state.onboarding_step = 0
+            st.rerun()
 
     elif st.session_state.step == "ONBOARDING":
-        # This is the onboarding flow with 3 messages shown one at a time
-        # onboarding_step 0 = Introduction
-        # onboarding_step 1 = Structure explanation
-        # onboarding_step 2 = Consent question
-        
         if st.session_state.onboarding_step == 0:
-            # Message 1: Introduction
             st.write("### Introduction")
             st.write("Hello, I'm your Speaking Assistant. My goal is to estimate your English level through a short conversation.")
             if st.button("Continue"):
-                st.session_state.onboarding_step = 1  # Move to next message
+                st.session_state.onboarding_step = 1
                 st.rerun()
-        
+
         elif st.session_state.onboarding_step == 1:
-            # Message 2: Structure explanation
             st.write("### Test Structure")
-            st.write("We will do three parts: a short interview, a 2-minute story, and a deeper discussion. The whole process takes about 11–14 minutes.")
+            st.write("We will do three parts: a short interview, a 2-minute story, and a deeper discussion. The whole process takes about 11\u201314 minutes.")
             if st.button("Continue"):
-                st.session_state.onboarding_step = 2  # Move to consent
+                st.session_state.onboarding_step = 2
                 st.rerun()
-        
+
         elif st.session_state.onboarding_step == 2:
-            # Message 3: Consent
             st.write("### Consent")
             st.write("I will record your responses to analyze your fluency and vocabulary. Are you ready to begin?")
-            # Two buttons: one to consent, one to go back
-            col1, col2 = st.columns(2)  # Create two side-by-side buttons
+            col1, col2 = st.columns(2)
             with col1:
                 if st.button("Yes, I'm ready"):
-                    # User consented, move to mode selection
                     st.session_state.step = "MODE_SELECTION"
                     st.rerun()
             with col2:
                 if st.button("Go back"):
-                    # User wants to go back, return to START
                     st.session_state.step = "START"
                     st.session_state.onboarding_step = 0
                     st.rerun()
 
     elif st.session_state.step == "MODE_SELECTION":
-        # Voice mode as primary option
-        st.write("### Ready to Begin Your Speaking Test")
-        st.write("")
-        st.write("Speak your answers naturally using your microphone for the most realistic IELTS experience.")
-        st.write("")
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.write("**Why Voice Mode?**")
-            st.write("• Tests your actual speaking ability")
-            st.write("• Natural conversation flow")
-            st.write("• Authentic IELTS-style assessment")
-            st.write("• More accurate fluency and pronunciation analysis")
-            st.write("")
-            st.write("")
-            if st.button("Start Test with Voice Mode", use_container_width=True, type="primary"):
+        st.write("### Choose Your Mode")
+        st.write("Select how you'd like to take the test.")
+
+        col1, col2 = st.columns(2, gap="medium")
+
+        with col1:
+            st.markdown("""
+**Voice Mode** *(Recommended)*
+
+- Tests your actual speaking ability
+- Natural conversation flow
+- Authentic IELTS-style assessment
+- Fluency & pronunciation analysis
+""")
+            if st.button("Start with Voice", use_container_width=True, type="primary"):
                 st.session_state.test_mode = 'voice'
                 st.session_state.step = "PART_1"
                 st.rerun()
-        
-        st.write("")
-        st.write("")
-        st.write("---")
-        
-        # Small text mode alternative at the bottom
-        with st.expander("Alternative: Text Mode (if microphone is unavailable)", expanded=False):
-            st.caption("Use this option only if you cannot use a microphone or are in a location where speaking aloud is not possible.")
-            st.write("")
-            st.write("**Note:** Text mode provides a simplified assessment and may not reflect your true speaking ability.")
-            st.write("")
-            if st.button("Continue with Text Mode", use_container_width=True):
+
+        with col2:
+            st.markdown("""
+**Text Mode**
+
+- Type your responses instead
+- No microphone needed
+- Simplified assessment
+- Good for quiet environments
+""")
+            if st.button("Start with Text", use_container_width=True):
                 st.session_state.test_mode = 'text'
                 st.session_state.step = "PART_1"
                 st.rerun()
@@ -360,7 +337,7 @@ def main():
                 st.rerun()
         else:
             st.write("### Part 1: The Interview")
-            st.write("I'll ask you some questions about different topics. Plese respond with brief, conversational responses.")
+            st.write("I'll ask you some questions about different topics. Please respond with brief, conversational responses.")
             
             # Show current topic
             if st.session_state.part1_current_topic_index < len(st.session_state.part1_topics):
@@ -673,7 +650,6 @@ Now, give a brief acknowledgment."""
                 
                 # Voice input for user's answer
                 if st.session_state.part1_waiting_for_answer:
-                    st.write("")
                     st.write("**Time Limit: 30 seconds**")
                     
                     # Check voice timer (actual limit: 40 seconds, but we tell them 30)
@@ -865,8 +841,6 @@ Now, give a brief acknowledgment."""
         # Voice mode: Show intro page first, then transition to main content
         if st.session_state.test_mode == 'voice' and st.session_state.part2_showing_intro:
             st.write("### Part 2: The Long Turn")
-            st.write("")
-            st.write("")
             
             # Generate and play instruction audio (only once)
             if not st.session_state.part2_instruction_audio_played:
@@ -900,14 +874,12 @@ Now, give a brief acknowledgment."""
             # Show prompt card (both text and voice modes)
             if st.session_state.part2_prompt_card:
                 st.write("---")
-                st.write("### Your Prompt Card")
+                st.write("#### Your Prompt Card")
                 st.write(f"**{st.session_state.part2_prompt_card.get('main_prompt', '')}**")
-                st.write("")
                 st.write("You should say:")
                 for bullet in st.session_state.part2_prompt_card.get('bullet_points', []):
                     st.write(f"• {bullet}")
-                st.write("")
-                st.write("*You will have to talk about the topic for 1 to 2 minutes. You have 60 seconds to think about what you're going to say. You can make some notes to help you if you wish.*")
+                st.caption("You will have to talk about the topic for 1 to 2 minutes. You have 60 seconds to think about what you're going to say. You can make some notes to help you if you wish.")
                 st.write("---")
             
             # Preparation phase (60 seconds) - smooth countdown (1 second updates)
@@ -1180,7 +1152,6 @@ Now, give a brief acknowledgment."""
             
                 elif st.session_state.test_mode == 'voice':
                     # ===== VOICE MODE FOR LONG RESPONSE =====
-                    st.write("")
                     st.write("**Time Limit: 120 seconds (2 minutes)**")
                 
                     # Voice timer logic (actual limit: 130 seconds, but we tell them 120)
@@ -1337,7 +1308,6 @@ Now, give a brief acknowledgment."""
             if st.session_state.part2_showing_completion and st.session_state.part2_completion_message:
                 st.write("---")
                 st.write(f"**Examiner:** {st.session_state.part2_completion_message}")
-                st.write("")
                 if st.button("Continue to Part 3", key="part2_continue_button"):
                     initialize_part3()
                     st.session_state.step = "PART_3"
@@ -1568,7 +1538,6 @@ Now, give a brief acknowledgment."""
                     
                         elif st.session_state.test_mode == 'voice':
                             # ===== VOICE MODE FOR ROUNDING OFF QUESTIONS =====
-                            st.write("")
                             st.write("**Time Limit: 30 seconds**")
                         
                             # Play question audio (autoplay only once per question, but keep player visible)
@@ -2081,7 +2050,6 @@ Now, give a brief acknowledgment."""
                 
                 elif st.session_state.test_mode == 'voice':
                     # ===== VOICE MODE FOR PART 3 =====
-                    st.write("")
                     st.write("**Time Limit: 60 seconds**")
                     
                     # Auto-play question audio (only once per question)
@@ -2402,46 +2370,38 @@ Now, give a brief acknowledgment."""
     
     elif st.session_state.step == "SCORING":
         st.write("# Your Speaking Assessment Results")
-        st.write("---")
-        
-        # Display Full Conversation History (for debugging/verification)
+
         with st.expander("View Full Conversation History", expanded=False):
-            st.write("### Part 1: The Interview")
+            st.write("#### Part 1: The Interview")
             if st.session_state.get('part1_conversation_history'):
                 for entry in st.session_state.part1_conversation_history:
                     if entry['role'] == 'examiner':
                         st.write(f"**Examiner:** {entry['content']}")
                     elif entry['role'] in ['user', 'candidate']:
                         st.write(f"**You:** {entry['content']}")
-                    st.write("")
             else:
                 st.write("*No Part 1 conversation data*")
-            
             st.write("---")
-            st.write("### Part 2: The Long Turn")
+            st.write("#### Part 2: The Long Turn")
             if st.session_state.get('part2_conversation_history'):
                 for entry in st.session_state.part2_conversation_history:
                     if entry['role'] == 'examiner':
                         st.write(f"**Examiner:** {entry['content']}")
                     elif entry['role'] in ['user', 'candidate']:
                         st.write(f"**You:** {entry['content']}")
-                    st.write("")
             else:
                 st.write("*No Part 2 conversation data*")
-            
             st.write("---")
-            st.write("### Part 3: Discussion")
+            st.write("#### Part 3: Discussion")
             if st.session_state.get('part3_conversation_history'):
                 for entry in st.session_state.part3_conversation_history:
                     if entry['role'] == 'examiner':
                         st.write(f"**Examiner:** {entry['content']}")
                     elif entry['role'] in ['user', 'candidate']:
                         st.write(f"**You:** {entry['content']}")
-                    st.write("")
             else:
                 st.write("*No Part 3 conversation data*")
-        
-        st.write("")
+
         st.write("---")
         
         # Calculate and cache scores on first render
@@ -2476,26 +2436,21 @@ Now, give a brief acknowledgment."""
         
         # Display scores
         scores = st.session_state.calculated_scores
-        
-        # Overall Score Display (prominent)
+
+        # Overall Score Display
         st.write("## Your IELTS Speaking Band Score")
-        
-        # Large, prominent display of final band
         col1, col2, col3 = st.columns([2, 1, 2])
         with col2:
-            st.markdown(f"<h1 style='text-align: center; color: #1f77b4;'>{scores['final_band']}</h1>", unsafe_allow_html=True)
-        
+            st.markdown(f"<h1>{scores['final_band']}</h1>", unsafe_allow_html=True)
+
         cefr_level = scores['cefr_level']
         cefr_description = get_cefr_description(cefr_level)
         st.info(f"**CEFR Level:** {cefr_level} - {cefr_description}")
         st.write(scores.get('overall_feedback', ''))
-        
-        st.write("")
         st.write("---")
-        
+
         # Detailed Criterion Scores
         st.write("## Detailed Score Breakdown")
-        st.write("")
         
         criterion_info = [
             ('fluency_coherence', 'Fluency & Coherence', 25),
@@ -2511,44 +2466,27 @@ Now, give a brief acknowledgment."""
             justification = score_data.get('justification', 'No assessment available')
             
             with st.expander(f"{score}/9 - {name} ({weight}% weight)", expanded=False):
-                st.write(f"**Score:** {score} / 9.0")
-                st.write(f"**Weight:** {weight}% of total score")
-                st.write("")
-                st.write(f"**Assessment:**")
-                st.write(justification)
-                
-                # Additional details if available
+                st.write(f"**Score:** {score} / 9.0  |  **Weight:** {weight}%")
+                st.write(f"**Assessment:** {justification}")
+
                 if key == 'lexical_resource' and score_data.get('notable_vocabulary'):
-                    st.write("")
-                    st.write("**Notable Vocabulary:**")
-                    st.write(", ".join(score_data['notable_vocabulary']))
-                
+                    st.write(f"**Notable Vocabulary:** {', '.join(score_data['notable_vocabulary'])}")
                 if key == 'grammatical_range' and score_data.get('complex_attempts'):
-                    st.write("")
                     st.write("**Complex Structures Attempted:**")
                     for attempt in score_data['complex_attempts']:
                         st.write(f"- {attempt}")
-                
                 if key == 'coherence_cohesion' and score_data.get('cohesive_devices_used'):
-                    st.write("")
-                    st.write("**Cohesive Devices Used:**")
-                    st.write(", ".join(score_data['cohesive_devices_used']))
-                
+                    st.write(f"**Cohesive Devices Used:** {', '.join(score_data['cohesive_devices_used'])}")
                 if key == 'task_achievement':
-                    st.write("")
                     base_score = score_data.get('base_score_before_penalties', score)
                     penalties = score_data.get('penalties_applied', 0)
                     if penalties > 0:
-                        st.write(f"**Base score:** {base_score}")
-                        st.write(f"**Penalties:** -{penalties}")
-                        st.write(f"**Final score:** {score}")
-        
-        st.write("")
+                        st.write(f"**Base score:** {base_score}  |  **Penalties:** -{penalties}  |  **Final:** {score}")
+
         st.write("---")
         
         # Strengths and Areas for Improvement
         col1, col2 = st.columns(2)
-        
         with col1:
             st.write("### Your Strengths")
             strengths = scores.get('strengths', [])
@@ -2557,7 +2495,6 @@ Now, give a brief acknowledgment."""
                     st.write(f"- {strength}")
             else:
                 st.write("*No strengths identified*")
-        
         with col2:
             st.write("### Areas for Improvement")
             improvements = scores.get('areas_for_improvement', [])
@@ -2566,91 +2503,60 @@ Now, give a brief acknowledgment."""
                     st.write(f"- {improvement}")
             else:
                 st.write("*No specific areas identified*")
-        
-        st.write("")
+
         st.write("---")
-        
-        # CEFR Levels Explanation
-        st.write("## Understanding CEFR Levels")
-        st.write("""
-The **Common European Framework of Reference (CEFR)** is an international standard for describing language ability. Here's what each level means:
-        """)
-        
-        # Create columns for better layout
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**A1 - Beginner**")
-            st.write("Can understand and use familiar everyday expressions and very basic phrases.")
-            st.write("")
-            
-            st.write("**A2 - Elementary**")
-            st.write("Can communicate in simple and routine tasks requiring a direct exchange of information.")
-            st.write("")
-            
-            st.write("**B1 - Intermediate**")
-            st.write("Can deal with most situations likely to arise whilst travelling. Can describe experiences, events, dreams, hopes and ambitions.")
-        
-        with col2:
-            st.write("**B2 - Upper Intermediate**")
-            st.write("Can interact with a degree of fluency and spontaneity. Can produce clear, detailed text on a wide range of subjects.")
-            st.write("")
-            
-            st.write("**C1 - Advanced**")
-            st.write("Can express ideas fluently and spontaneously. Can use language flexibly and effectively for social, academic and professional purposes.")
-            st.write("")
-            
-            st.write("**C2 - Proficiency**")
-            st.write("Can understand with ease virtually everything heard or read. Can express themselves spontaneously, very fluently and precisely.")
-        
-        st.write("")
+
+        # CEFR Levels
+        with st.expander("Understanding CEFR Levels", expanded=False):
+            st.write("The **Common European Framework of Reference (CEFR)** is an international standard for describing language ability.")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("""
+**A1 - Beginner** — Familiar everyday expressions and basic phrases.
+
+**A2 - Elementary** — Simple, routine tasks and direct information exchange.
+
+**B1 - Intermediate** — Most travel situations; describe experiences and ambitions.
+""")
+            with col2:
+                st.markdown("""
+**B2 - Upper Intermediate** — Fluent interaction; clear, detailed text on many subjects.
+
+**C1 - Advanced** — Fluent, spontaneous expression for social/academic/professional use.
+
+**C2 - Proficiency** — Near-native comprehension and precise spontaneous expression.
+""")
+
+        # Tips
+        with st.expander("Tips for Improvement", expanded=False):
+            st.write("**Delivery & Fluency**")
+            st.markdown("""
+- **Pacing + Clarity:** Aim for balance and intelligibility
+- **Reduce Filler Words:** Replace "um," "like" with a short pause
+- **Thinking Time is OK:** Pause briefly or use stalling phrases
+""")
+            st.write("**Content & Relevance**")
+            st.markdown("""
+- **Stay On-Topic:** Answer the question asked
+- **Avoid Memorized Answers:** Sound natural and engaged
+- **Don't Force Big Words:** Accuracy matters more than impressiveness
+""")
+            st.write("**Practice Methods**")
+            st.markdown("""
+- Practice with real IELTS-style prompts regularly
+- Speak English daily, even if just to yourself
+- Record yourself and listen back for improvement areas
+- Learn common phrases (chunks), not just individual words
+- Think in English rather than translating
+""")
+
+        # Resources
+        with st.expander("Additional Resources", expanded=False):
+            st.markdown("[**IELTS Speaking Tips: Complete Guide**](https://global-exam.com/blog/en/ielts-speaking-tips-all-you-need-to-prepare-for-the-oral-test/)")
+
         st.write("---")
-        
-        # Tips for Improvement Section
-        st.write("## Tips for Improvement")
-        st.write("""
-Here are evidence-based strategies to help you improve your speaking skills:
-        """)
-        
-        st.write("### Delivery & Fluency")
-        st.write("""
-- **Pacing + Clarity:** Don't speak too fast or too slow; aim for balance and intelligibility
-- **Reduce Filler Words:** Minimize "um," "like," "you know" — replace with a short silent pause or a neutral phrase like "That's interesting—let me think…"
-- **Thinking Time is Allowed:** You can pause briefly, ask to repeat the question, or use stalling phrases if needed
-        """)
-        
-        st.write("### Content & Relevance")
-        st.write("""
-- **Stay On-Topic:** Actually answer the question asked — more words don't help if you drift
-- **Avoid Memorized Answers:** Sound natural and engaged rather than using "ready-made" responses
-- **Don't Use Unfamiliar Big Words:** Accuracy and appropriateness matter more than impressive vocabulary
-        """)
-        
-        st.write("### Practice Methods")
-        st.write("""
-- **Do Sample Questions:** Practice with real IELTS-style prompts regularly
-- **Speak Daily:** Find opportunities to speak English every day, even if just to yourself
-- **Listen & Read Aloud:** Expose yourself to natural English and practice pronunciation
-- **Think in English:** Try to formulate thoughts in English rather than translating
-- **Record Yourself:** Listen back to identify areas for improvement
-- **Learn Phrases (Chunks):** Focus on learning common phrases, not just individual words
-- **Act Confident:** Confidence helps fluency — don't be afraid to make mistakes
-        """)
-        
-        st.write("")
-        st.write("---")
-        
-        # Additional Resources
-        st.write("## Additional Resources")
-        st.write("""
-For more comprehensive IELTS Speaking tips and practice strategies, visit:
-        """)
-        st.markdown("[**IELTS Speaking Tips: Complete Guide**](https://global-exam.com/blog/en/ielts-speaking-tips-all-you-need-to-prepare-for-the-oral-test/)")
-        
-        st.write("")
-        st.write("---")
-        
-        # Option to retake
+
+        # Retake
         if st.button("Take Test Again"):
                 # Reset all session state
                 for key in list(st.session_state.keys()):

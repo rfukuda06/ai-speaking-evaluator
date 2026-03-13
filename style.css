@@ -1,483 +1,576 @@
-/* Professional Speaking Test Application Styles - Dark Background Compatible */
-
 /* ==================== ROOT VARIABLES ==================== */
 :root {
-    --primary-color: #FFFFFF;
-    --accent-teal: #1ABC9C;
-    --accent-coral: #FF6B6B;
-    --accent-gold: #F39C12;
-    --success-green: #2ECC71;
-    --warning-orange: #E67E22;
-    --error-red: #E74C3C;
-    --text-white: #FFFFFF;
-    --text-light: #ECF0F1;
-    --text-gray: #BDC3C7;
-    --background-white: #FFFFFF;
-    --background-card: rgba(255, 255, 255, 0.05);
-    --background-card-hover: rgba(255, 255, 255, 0.08);
-    --border-light: rgba(255, 255, 255, 0.15);
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --primary: #6366F1;
+    --primary-light: #818CF8;
+    --primary-dark: #4F46E5;
+    --box-bg: rgba(99, 102, 241, 0.08);
+    --box-border: #6366F1;
+    --text-primary: #18181B;
+    --text-secondary: #52525B;
+    --text-muted: #A1A1AA;
+    --bg-base: #FFFFFF;
+    --bg-card: #F4F4F5;
+    --bg-card-hover: #EBEBED;
+    --bg-elevated: #E4E4E7;
+    --border: rgba(0, 0, 0, 0.1);
+    --border-hover: rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
 }
 
-/* ==================== GLOBAL STYLES ==================== */
+/* ==================== GLOBAL ==================== */
 .main {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* Main title styling */
-h1 {
-    color: var(--text-white) !important;
-    font-weight: 600 !important;
-    letter-spacing: -0.5px !important;
-    margin-bottom: 2rem !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* ==================== LAYOUT ==================== */
+.block-container {
+    padding-top: 2.5rem !important;
+    padding-bottom: 2.5rem !important;
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+    max-width: 860px !important;
+    margin: 0 auto !important;
 }
 
-/* Section headers */
-h2, h3 {
-    color: var(--text-white) !important;
-    font-weight: 500 !important;
-    margin-top: 1.5rem !important;
-    margin-bottom: 1rem !important;
+/* White center column that extends full height via the main section */
+.main .stAppViewBlockContainer {
+    background-color: #FFFFFF;
+    border-left: 1px solid #E4E4E7;
+    border-right: 1px solid #E4E4E7;
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+/* Ensure the main area behind it shows the off-white */
+.main {
+    background-color: #F4F4F5 !important;
+}
+
+/* Also paint the header bar area */
+header[data-testid="stHeader"] {
+    background: linear-gradient(
+        to right,
+        #F4F4F5 0%,
+        #F4F4F5 calc(50% - 430px),
+        #FFFFFF calc(50% - 430px),
+        #FFFFFF calc(50% + 430px),
+        #F4F4F5 calc(50% + 430px),
+        #F4F4F5 100%
+    ) !important;
+}
+
+/* White strip from very top to bottom */
+section[data-testid="stMain"] {
+    background: linear-gradient(
+        to right,
+        #F4F4F5 0%,
+        #F4F4F5 calc(50% - 430px),
+        #FFFFFF calc(50% - 430px),
+        #FFFFFF calc(50% + 430px),
+        #F4F4F5 calc(50% + 430px),
+        #F4F4F5 100%
+    ) !important;
+    /* Border lines */
+    background-image:
+        linear-gradient(#E4E4E7, #E4E4E7),
+        linear-gradient(#E4E4E7, #E4E4E7),
+        linear-gradient(
+            to right,
+            #F4F4F5 0%,
+            #F4F4F5 calc(50% - 430px),
+            #FFFFFF calc(50% - 430px),
+            #FFFFFF calc(50% + 430px),
+            #F4F4F5 calc(50% + 430px),
+            #F4F4F5 100%
+        ) !important;
+    background-size:
+        1px 100%,
+        1px 100%,
+        100% 100% !important;
+    background-position:
+        calc(50% - 430px) 0,
+        calc(50% + 430px) 0,
+        0 0 !important;
+    background-repeat: no-repeat !important;
+}
+
+/* ==================== SIDEBAR ==================== */
+[data-testid="stSidebar"] {
+    background-color: #F4F4F5 !important;
+    border-right: 1px solid #E4E4E7 !important;
+}
+
+/* Push sidebar content to the very top */
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    padding-top: 0.5rem !important;
+    gap: 0 !important;
+}
+
+[data-testid="stSidebar"] .block-container {
+    padding-top: 0 !important;
+}
+
+[data-testid="stSidebar"] h3 {
+    font-size: 0.95rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+}
+
+[data-testid="stSidebar"] .stCaption {
+    color: #A1A1AA !important;
+    font-size: 0.7rem !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown p {
+    font-size: 0.82rem !important;
+    margin-bottom: 0.15rem !important;
+}
+
+[data-testid="stSidebar"] hr {
+    margin: 0.3rem 0 !important;
+}
+
+[data-testid="stSidebar"] .element-container {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+[data-testid="stSidebar"] .stElementContainer {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+[data-testid="stSidebar"] .stButton {
+    margin-top: 0.1rem !important;
+    margin-bottom: 0.1rem !important;
+}
+
+
+/* ==================== TYPOGRAPHY ==================== */
+h1 {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+    font-size: 2.25rem !important;
+    letter-spacing: -0.5px !important;
+    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    border-bottom: 2px solid #E4E4E7;
 }
 
 h2 {
-    border-bottom: 2px solid var(--border-light);
-    padding-bottom: 0.5rem;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 1.5rem !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
 }
 
-/* Regular text */
+h3 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 1.2rem !important;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+h4 {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+}
+
 p, div, span, li {
-    color: var(--text-light) !important;
+    color: var(--text-primary) !important;
     line-height: 1.6;
 }
 
-/* Strong/bold text */
 strong, b {
-    color: var(--text-white) !important;
+    color: #18181B !important;
+}
+
+/* ==================== SPACING ==================== */
+.element-container + .element-container {
+    margin-top: 0.25rem;
+}
+
+.stMarkdown p {
+    margin-bottom: 0.4rem;
 }
 
 /* ==================== BUTTONS ==================== */
-/* Primary button (main actions) */
+/* Primary buttons */
 .stButton > button[kind="primary"],
 .stButton > button[type="primary"] {
-    background: linear-gradient(135deg, var(--accent-teal), #16A085) !important;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
     color: white !important;
     border: none !important;
-    border-radius: 8px !important;
-    padding: 0.75rem 2rem !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.65rem 1.75rem !important;
     font-weight: 600 !important;
-    font-size: 1rem !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3) !important;
+    font-size: 0.95rem !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
 }
 
 .stButton > button[kind="primary"]:hover,
 .stButton > button[type="primary"]:hover {
-    background: linear-gradient(135deg, #16A085, var(--accent-teal)) !important;
-    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4) !important;
-    transform: translateY(-2px) !important;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* Secondary buttons */
 .stButton > button {
-    background-color: var(--background-card) !important;
-    color: var(--text-white) !important;
-    border: 2px solid var(--border-light) !important;
-    border-radius: 6px !important;
-    padding: 0.6rem 1.5rem !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.5rem 1.25rem !important;
     font-weight: 500 !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.2s ease !important;
 }
 
 .stButton > button:hover {
-    border-color: var(--accent-teal) !important;
-    background-color: var(--background-card-hover) !important;
-    color: var(--accent-teal) !important;
+    border-color: var(--primary) !important;
+    background-color: var(--bg-card-hover) !important;
+    color: var(--primary-light) !important;
 }
 
 /* Submit buttons */
 .stButton > button[type="submit"] {
-    background: linear-gradient(135deg, var(--success-green), #27AE60) !important;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
     color: white !important;
     border: none !important;
     font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25) !important;
 }
 
 .stButton > button[type="submit"]:hover {
-    background: linear-gradient(135deg, #27AE60, var(--success-green)) !important;
-    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4) !important;
-    transform: translateY(-2px) !important;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* ==================== FORM INPUTS ==================== */
-/* Text inputs and text areas */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
-    border: 2px solid var(--border-light) !important;
-    border-radius: 8px !important;
-    padding: 0.75rem !important;
-    font-size: 1rem !important;
-    transition: all 0.3s ease !important;
-    background-color: var(--background-card) !important;
-    color: var(--text-white) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.65rem !important;
+    font-size: 0.95rem !important;
+    transition: all 0.2s ease !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
 }
 
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
-    border-color: var(--accent-teal) !important;
-    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.2) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
     outline: none !important;
-    background-color: rgba(255, 255, 255, 0.08) !important;
+    background-color: var(--bg-card-hover) !important;
 }
 
 .stTextInput > div > div > input::placeholder,
 .stTextArea > div > div > textarea::placeholder {
-    color: var(--text-gray) !important;
+    color: var(--text-muted) !important;
 }
 
-/* Input labels and captions */
 .stTextInput label,
 .stTextArea label {
-    color: var(--text-white) !important;
+    color: var(--text-primary) !important;
     font-weight: 500 !important;
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.25rem !important;
 }
 
 /* ==================== INFO BOXES ==================== */
-/* Info boxes */
+/* Remove Streamlit's default wrapper padding so boxes align with other elements */
 .stAlert {
-    border-radius: 8px !important;
+    border-radius: var(--radius-md) !important;
     border: none !important;
-    padding: 1rem 1.25rem !important;
-    margin: 1rem 0 !important;
+    padding: 0 !important;
+    margin: 0.5rem 0 !important;
 }
 
-/* Info (teal/cyan) */
-[data-baseweb="notification"][kind="info"] {
-    background-color: rgba(26, 188, 156, 0.15) !important;
-    color: var(--text-white) !important;
-    border-left: 4px solid var(--accent-teal) !important;
+/* The inner notification element carries the visual styling */
+[data-baseweb="notification"] {
+    margin: 0 !important;
+    border-radius: var(--radius-md) !important;
 }
 
-/* Success (green) */
-[data-baseweb="notification"][kind="success"] {
-    background-color: rgba(46, 204, 113, 0.15) !important;
-    color: var(--text-white) !important;
-    border-left: 4px solid var(--success-green) !important;
-}
-
-/* Warning (orange) */
-[data-baseweb="notification"][kind="warning"] {
-    background-color: rgba(230, 126, 34, 0.15) !important;
-    color: var(--text-white) !important;
-    border-left: 4px solid var(--warning-orange) !important;
-}
-
-/* Error (red) */
+[data-baseweb="notification"][kind="info"],
+[data-baseweb="notification"][kind="success"],
+[data-baseweb="notification"][kind="warning"],
 [data-baseweb="notification"][kind="error"] {
-    background-color: rgba(231, 76, 60, 0.15) !important;
-    color: var(--text-white) !important;
-    border-left: 4px solid var(--error-red) !important;
+    background-color: var(--box-bg) !important;
+    color: var(--text-primary) !important;
+    border-left: 3px solid var(--box-border) !important;
+}
+
+[data-baseweb="notification"] p,
+[data-baseweb="notification"] div {
+    color: var(--text-primary) !important;
 }
 
 /* ==================== CAPTIONS ==================== */
 .stCaption, .stCaptionContainer {
-    color: var(--text-gray) !important;
-    font-size: 0.875rem !important;
+    color: var(--text-muted) !important;
+    font-size: 0.8rem !important;
 }
 
 /* ==================== PROGRESS BAR ==================== */
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, var(--accent-teal), var(--accent-coral)) !important;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
 }
 
 .stProgress > div > div > div {
-    background-color: var(--background-card) !important;
-    border: 1px solid var(--border-light);
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border);
     border-radius: 10px;
 }
 
 /* ==================== EXPANDER ==================== */
 .streamlit-expanderHeader {
-    background-color: var(--background-card) !important;
-    border-radius: 8px !important;
-    border: 1px solid var(--border-light) !important;
-    padding: 0.75rem 1rem !important;
+    background-color: var(--bg-card) !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border) !important;
+    padding: 0.6rem 0.85rem !important;
     font-weight: 500 !important;
-    color: var(--text-white) !important;
+    font-size: 0.9rem !important;
+    color: var(--text-primary) !important;
 }
 
 .streamlit-expanderHeader:hover {
-    border-color: var(--accent-teal) !important;
-    background-color: var(--background-card-hover) !important;
+    border-color: var(--primary) !important;
+    background-color: var(--bg-card-hover) !important;
 }
 
 .streamlit-expanderContent {
-    padding: 1.5rem;
-    background-color: var(--background-card);
-    border: 1px solid var(--border-light);
+    padding: 1rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
     border-top: none;
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 /* ==================== COLUMNS ==================== */
 .stColumn {
-    padding: 0 0.5rem;
+    padding: 0 0.4rem;
 }
 
-/* ==================== AUDIO WIDGET ==================== */
+/* ==================== AUDIO ==================== */
 audio {
     width: 100%;
-    margin: 0.5rem 0;
-    border-radius: 8px;
+    margin: 0.25rem 0;
+    border-radius: var(--radius-md);
 }
 
 /* ==================== SPINNER ==================== */
 .stSpinner > div {
-    border-color: var(--accent-teal) transparent transparent transparent !important;
+    border-color: var(--primary) transparent transparent transparent !important;
+}
+
+.stSpinner > div > div {
+    color: var(--text-primary) !important;
 }
 
 /* ==================== MARKDOWN ==================== */
 .stMarkdown {
-    color: var(--text-light);
+    color: var(--text-primary);
 }
 
 .stMarkdown a {
-    color: var(--accent-teal) !important;
+    color: var(--primary) !important;
     text-decoration: none !important;
-    border-bottom: 1px solid var(--accent-teal);
-    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
 }
 
 .stMarkdown a:hover {
-    border-bottom: 2px solid var(--accent-teal);
-    color: #16A085 !important;
+    border-bottom: 1px solid var(--primary);
 }
 
 .stMarkdown ul, .stMarkdown ol {
-    margin-left: 1.5rem;
-    margin-bottom: 1rem;
+    margin-left: 1.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .stMarkdown li {
-    margin-bottom: 0.25rem;
-    color: var(--text-light) !important;
+    margin-bottom: 0.15rem;
+    color: var(--text-primary) !important;
 }
 
-/* ==================== HORIZONTAL RULE ==================== */
+.stMarkdown code {
+    background-color: var(--bg-card);
+    color: var(--primary-dark);
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.85em;
+}
+
+/* ==================== HR ==================== */
 hr {
     border: none !important;
-    border-top: 1px solid var(--border-light) !important;
-    margin: 2rem 0 !important;
-    opacity: 0.5;
+    border-top: 1px solid var(--border) !important;
+    margin: 1rem 0 !important;
+    opacity: 0.6;
 }
 
 /* ==================== RADIO BUTTONS ==================== */
 .stRadio > div {
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .stRadio label {
-    color: var(--text-white) !important;
-    padding: 0.5rem 1rem !important;
-    border-radius: 6px !important;
-    transition: background-color 0.3s ease !important;
+    color: var(--text-primary) !important;
+    padding: 0.4rem 0.75rem !important;
+    border-radius: var(--radius-sm) !important;
+    transition: background-color 0.2s ease !important;
 }
 
 .stRadio label:hover {
-    background-color: var(--background-card-hover) !important;
+    background-color: var(--bg-card-hover) !important;
 }
 
-/* ==================== FORM STYLING ==================== */
+/* ==================== FORMS ==================== */
 form {
-    background-color: var(--background-card);
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow);
+    background-color: var(--bg-card);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
-/* ==================== LAYOUT ==================== */
-.block-container {
-    padding-top: 3rem !important;
-    padding-bottom: 3rem !important;
-    max-width: 900px !important;
-}
-
-/* ==================== SCORE DISPLAY ==================== */
-/* Large centered score number */
-div[data-testid="column"] h1 {
-    text-align: center;
-    font-size: 4rem !important;
-    font-weight: 700 !important;
-    background: linear-gradient(135deg, var(--accent-teal), var(--accent-coral));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 1rem 0 !important;
-}
-
-/* ==================== CRITERION SCORE BADGES ==================== */
-/* Style the score indicators in expanders */
-.streamlit-expanderHeader strong {
-    font-weight: 600;
-}
-
-/* ==================== TYPOGRAPHY REFINEMENTS ==================== */
-h1 {
-    font-size: 2.5rem !important;
-    margin-bottom: 1rem !important;
-}
-
-h2 {
-    font-size: 1.75rem !important;
-}
-
-h3 {
-    font-size: 1.25rem !important;
-    color: var(--text-light) !important;
-}
-
-h4 {
-    color: var(--text-white) !important;
-    font-weight: 500 !important;
-}
-
-/* ==================== SPACING ==================== */
-.element-container + .element-container {
-    margin-top: 0.5rem;
-}
-
-.stMarkdown p {
-    margin-bottom: 0.75rem;
-}
-
-/* ==================== INFO BOX TEXT ==================== */
-/* Make info box content more readable */
-[data-baseweb="notification"] p,
-[data-baseweb="notification"] div {
-    color: var(--text-white) !important;
-}
-
-/* ==================== FORM BUTTON STYLING ==================== */
-/* Form submit buttons - make them stand out */
 form button[kind="primaryFormSubmit"],
 form button[type="submit"] {
-    background: linear-gradient(135deg, var(--accent-teal), #16A085) !important;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
     color: white !important;
     border: none !important;
-    border-radius: 8px !important;
-    padding: 0.75rem 2rem !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.6rem 1.5rem !important;
     font-weight: 600 !important;
-    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25) !important;
 }
 
 form button[kind="primaryFormSubmit"]:hover,
 form button[type="submit"]:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
 }
 
-/* ==================== AUDIO RECORDER WIDGET ==================== */
-/* Style audio input widget */
+/* ==================== AUDIO RECORDER ==================== */
 [data-testid="stAudioInput"] {
-    background-color: var(--background-card) !important;
-    border: 2px solid var(--border-light) !important;
-    border-radius: 8px !important;
-    padding: 1rem !important;
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.75rem !important;
 }
 
 [data-testid="stAudioInput"] label {
-    color: var(--text-white) !important;
+    color: var(--text-primary) !important;
     font-weight: 500 !important;
 }
 
 /* ==================== CONVERSATION DISPLAY ==================== */
-/* Better formatting for conversation history */
 .streamlit-expanderContent p {
-    line-height: 1.7;
-    color: var(--text-light) !important;
+    line-height: 1.6;
+    color: var(--text-primary) !important;
 }
 
 .streamlit-expanderContent strong {
-    color: var(--text-white) !important;
+    color: #18181B !important;
 }
 
-/* ==================== CUSTOM HIGHLIGHTS ==================== */
-/* Highlight important information */
-.stMarkdown code {
-    background-color: var(--background-card);
-    color: var(--accent-teal);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-family: 'Monaco', 'Courier New', monospace;
+/* ==================== SCORE DISPLAY ==================== */
+div[data-testid="column"] h1 {
+    text-align: center;
+    font-size: 3.5rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0.5rem 0 !important;
 }
 
-/* ==================== SPINNER TEXT ==================== */
-.stSpinner > div > div {
-    color: var(--text-white) !important;
-}
-
-/* ==================== TABLE STYLING (if needed) ==================== */
+/* ==================== TABLE ==================== */
 table {
-    color: var(--text-light) !important;
-    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
 }
 
 th {
-    color: var(--text-white) !important;
-    background-color: var(--background-card) !important;
+    color: #18181B !important;
+    background-color: var(--bg-card) !important;
 }
 
-/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+/* ==================== INPUT CAPTIONS ==================== */
+.stTextInput > label > div > p,
+.stTextArea > label > div > p {
+    color: var(--text-muted) !important;
+    font-size: 0.8rem !important;
+}
+
+/* ==================== SCROLLBAR ==================== */
+textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: var(--bg-card);
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
     .block-container {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
-    
+
     div[data-testid="column"] h1 {
-        font-size: 3rem !important;
+        font-size: 2.75rem !important;
     }
-    
+
     h1 {
-        font-size: 2rem !important;
+        font-size: 1.75rem !important;
     }
-    
+
     h2 {
-        font-size: 1.5rem !important;
+        font-size: 1.3rem !important;
     }
 }
 
-/* ==================== SPECIAL COMPONENTS ==================== */
-/* Score breakdown expanders - add visual hierarchy */
-div[data-testid="stExpander"]:has(strong) {
-    margin: 0.75rem 0;
+/* ==================== SIDEBAR BUTTONS ==================== */
+[data-testid="stSidebar"] .stButton > button {
+    font-size: 0.8rem !important;
+    padding: 0.4rem 0.6rem !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid #E4E4E7 !important;
+    color: var(--text-secondary) !important;
+    font-weight: 400 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
 }
 
-/* Improve caption visibility */
-.stTextInput > label > div > p,
-.stTextArea > label > div > p {
-    color: var(--text-gray) !important;
-    font-size: 0.85rem !important;
-}
-
-/* ==================== SCROLLBAR (for text areas) ==================== */
-textarea::-webkit-scrollbar {
-    width: 8px;
-}
-
-textarea::-webkit-scrollbar-track {
-    background: var(--background-card);
-}
-
-textarea::-webkit-scrollbar-thumb {
-    background: var(--border-light);
-    border-radius: 4px;
-}
-
-textarea::-webkit-scrollbar-thumb:hover {
-    background: var(--text-gray);
+[data-testid="stSidebar"] .stButton > button:hover {
+    background-color: var(--box-bg) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
 }
