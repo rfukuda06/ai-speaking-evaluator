@@ -1814,6 +1814,7 @@ Now, give a brief acknowledgment."""
                     })
                     st.session_state.part3_waiting_for_answer = True
                     st.session_state.part3_audio_played_key = None  # Reset audio played tracker
+                    st.session_state.part3_voice_audio_data = None  # Clear cached audio
                     reset_silence_timer("part3")  # Reset timer for new question
                     st.rerun()
             
@@ -2091,7 +2092,8 @@ Now, give a brief acknowledgment."""
                                 st.session_state.part3_current_question = redirect_message
                                 st.session_state.part3_acknowledgment = ""
                                 st.session_state.part3_audio_played_key = None  # Reset audio played tracker
-                                
+                                st.session_state.part3_voice_audio_data = None  # Clear cached audio
+
                                 # Add redirect to history
                                 st.session_state.part3_conversation_history.append({
                                     'role': 'examiner',
@@ -2115,19 +2117,17 @@ Now, give a brief acknowledgment."""
                         if st.session_state.part3_acknowledgment:
                             text_to_speak = st.session_state.part3_acknowledgment + " " + st.session_state.part3_current_question
                         
-                        # Only generate and play audio if we haven't played this specific question yet
-                        if st.session_state.part3_audio_played_key != current_audio_key:
-                            question_audio_file = text_to_speech(text_to_speak)
-                            if question_audio_file:
-                                st.audio(question_audio_file, format="audio/mp3", autoplay=True)
-                                st.caption("Audio: Question")
+                        # Generate TTS audio once and cache it
+                        if st.session_state.part3_voice_audio_data is None:
+                            st.session_state.part3_voice_audio_data = text_to_speech(text_to_speak)
+
+                        if st.session_state.part3_voice_audio_data:
+                            # Only autoplay if we haven't played this specific question yet
+                            should_autoplay = st.session_state.part3_audio_played_key != current_audio_key
+                            st.audio(st.session_state.part3_voice_audio_data, format="audio/mp3", autoplay=should_autoplay)
+                            st.caption("Audio: Question")
+                            if should_autoplay:
                                 st.session_state.part3_audio_played_key = current_audio_key
-                        else:
-                            # Audio already played, show it without autoplay
-                            question_audio_file = text_to_speech(text_to_speak)
-                            if question_audio_file:
-                                st.audio(question_audio_file, format="audio/mp3", autoplay=False)
-                                st.caption("Audio: Question")
                     
                     # Voice timer logic (actual limit: 70 seconds, but we tell them 60)
                     if st.session_state.part3_voice_timer_start is not None:
@@ -2244,6 +2244,7 @@ Now, give a brief acknowledgment."""
                                             })
                                             st.session_state.part3_followups_asked = 1
                                             st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                            st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                             st.rerun()
                                         
                                         elif st.session_state.part3_followups_asked == 1:
@@ -2270,6 +2271,7 @@ Now, give a brief acknowledgment."""
                                                         'content': new_question
                                                     })
                                                     st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                                    st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                                     st.rerun()
                                             else:
                                                 if word_count >= 20:
@@ -2296,6 +2298,7 @@ Now, give a brief acknowledgment."""
                                                             'content': new_question
                                                         })
                                                         st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                                        st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                                         st.rerun()
                                                 else:
                                                     follow_up_question = generate_part3_question(
@@ -2311,6 +2314,7 @@ Now, give a brief acknowledgment."""
                                                     })
                                                     st.session_state.part3_followups_asked = 2
                                                     st.session_state.part3_audio_played_key = None  # Reset audio for new question
+                                                    st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                                     st.rerun()
                                         
                                         else:  # followups_asked == 2
@@ -2340,8 +2344,9 @@ Now, give a brief acknowledgment."""
                                                 # Clear transcription and audio for next question
                                                 st.session_state.part3_transcribed_answer = None
                                                 st.session_state.part3_audio_played_key = None
+                                                st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                                 st.rerun()
-                            
+
                             # If answer is irrelevant and we've already redirected once, move on
                             elif st.session_state.part3_redirect_count >= 1:
                                 st.session_state.part3_conversation_history.append({
@@ -2387,8 +2392,9 @@ Now, give a brief acknowledgment."""
                                 # Clear transcription and audio for next question
                                 st.session_state.part3_transcribed_answer = None
                                 st.session_state.part3_audio_played_key = None
+                                st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                 st.rerun()
-                            
+
                             # If answer is irrelevant and first time, send redirect
                             else:
                                 st.session_state.part3_redirect_count += 1
@@ -2408,8 +2414,9 @@ Now, give a brief acknowledgment."""
                                     st.session_state.part3_current_question = redirect_message
                                     st.session_state.part3_acknowledgment = ""
                                     st.session_state.part3_audio_played_key = None  # Reset audio played tracker
+                                    st.session_state.part3_voice_audio_data = None  # Clear cached audio
                                     st.session_state.part3_transcribed_answer = None  # Clear transcription
-                                    
+
                                     st.session_state.part3_conversation_history.append({
                                         'role': 'examiner',
                                         'content': redirect_message
