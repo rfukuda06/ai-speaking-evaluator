@@ -293,16 +293,9 @@ def main():
         elif st.session_state.onboarding_step == 2:
             st.write("### Consent")
             st.write("I will record your responses to analyze your fluency and vocabulary. Are you ready to begin?")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Yes, I'm ready"):
-                    st.session_state.step = "MODE_SELECTION"
-                    st.rerun()
-            with col2:
-                if st.button("Go back"):
-                    st.session_state.step = "START"
-                    st.session_state.onboarding_step = 0
-                    st.rerun()
+            if st.button("Yes, I'm ready"):
+                st.session_state.step = "MODE_SELECTION"
+                st.rerun()
 
     elif st.session_state.step == "MODE_SELECTION":
         st.write("### Choose Your Mode")
