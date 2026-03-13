@@ -15,7 +15,7 @@ from scoring import (generate_metrics_summary, score_speaking_test, get_cefr_des
 
 st.set_page_config(
     page_title="AI English Speaking Evaluator",
-    page_icon=None,
+    page_icon="◆",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
