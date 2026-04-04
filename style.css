@@ -1,21 +1,21 @@
 /* ==================== ROOT VARIABLES ==================== */
 :root {
-    --primary: #6366F1;
-    --primary-light: #818CF8;
-    --primary-dark: #4F46E5;
-    --box-bg: rgba(99, 102, 241, 0.08);
-    --box-border: #6366F1;
-    --text-primary: #18181B;
-    --text-secondary: #52525B;
-    --text-muted: #A1A1AA;
-    --bg-base: #FFFFFF;
-    --bg-card: #F4F4F5;
-    --bg-card-hover: #EBEBED;
-    --bg-elevated: #E4E4E7;
-    --border: rgba(0, 0, 0, 0.1);
-    --border-hover: rgba(0, 0, 0, 0.2);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --primary: #AD46FF;
+    --primary-light: #C084FC;
+    --primary-dark: #8E51FF;
+    --box-bg: rgba(173, 70, 255, 0.12);
+    --box-border: #AD46FF;
+    --text-primary: #F3E8FF;
+    --text-secondary: rgba(233, 212, 255, 0.7);
+    --text-muted: rgba(218, 178, 255, 0.5);
+    --bg-base: rgb(18, 12, 33);
+    --bg-card: rgba(255, 255, 255, 0.05);
+    --bg-card-hover: rgba(255, 255, 255, 0.08);
+    --bg-elevated: rgba(255, 255, 255, 0.1);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -26,9 +26,76 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* ==================== DARK BACKGROUND EVERYWHERE ==================== */
+.main,
+.main .stAppViewBlockContainer,
+section[data-testid="stMain"],
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(144deg,
+        rgb(15,10,26) 0%,
+        rgb(16,11,30) 7%,
+        rgb(18,12,33) 14%,
+        rgb(20,13,37) 21%,
+        rgb(21,14,41) 29%,
+        rgb(23,14,45) 36%,
+        rgb(24,15,49) 43%,
+        rgb(26,16,53) 50%,
+        rgb(24,14,51) 60%,
+        rgb(23,13,49) 70%,
+        rgb(21,11,46) 80%,
+        rgb(20,9,44) 90%,
+        rgb(18,8,42) 100%) !important;
+    background-image: none !important;
+    background-color: rgb(18,12,33) !important;
+    border: none !important;
+}
+
+/* Use background-color fallback since gradient on background-image gets cleared */
+section[data-testid="stMain"] {
+    background: rgb(18,12,33) !important;
+    background-image: none !important;
+    background-size: unset !important;
+    background-position: unset !important;
+    background-repeat: unset !important;
+}
+
+.main .stAppViewBlockContainer {
+    background-color: transparent !important;
+    border-left: none !important;
+    border-right: none !important;
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+/* Hide Streamlit header bar (white bar at top) */
+header[data-testid="stHeader"] {
+    display: none !important;
+}
+
+/* Also hide the decoration at the top */
+[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+/* Remove spacing above landing page iframe */
+.stHtml,
+.element-container:has(iframe),
+[data-testid="stCustomComponentV1"] {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.stHtml iframe,
+[data-testid="stCustomComponentV1"] iframe,
+.element-container iframe {
+    display: block !important;
+    border: none !important;
+}
+
 /* ==================== LAYOUT ==================== */
 .block-container {
-    padding-top: 2.5rem !important;
+    padding-top: 0 !important;
     padding-bottom: 2.5rem !important;
     padding-left: 3rem !important;
     padding-right: 3rem !important;
@@ -36,75 +103,32 @@
     margin: 0 auto !important;
 }
 
-/* White center column that extends full height via the main section */
-.main .stAppViewBlockContainer {
-    background-color: #FFFFFF;
-    border-left: 1px solid #E4E4E7;
-    border-right: 1px solid #E4E4E7;
-    max-width: 860px;
-    margin: 0 auto;
+[data-testid="stAppViewBlockContainer"] {
+    padding-top: 0 !important;
 }
 
-/* Ensure the main area behind it shows the off-white */
-.main {
-    background-color: #F4F4F5 !important;
+section[data-testid="stMain"],
+section[data-testid="stMain"] > div,
+section[data-testid="stMain"] > div > div {
+    padding-top: 0 !important;
 }
 
-/* Also paint the header bar area */
-header[data-testid="stHeader"] {
-    background: linear-gradient(
-        to right,
-        #F4F4F5 0%,
-        #F4F4F5 calc(50% - 430px),
-        #FFFFFF calc(50% - 430px),
-        #FFFFFF calc(50% + 430px),
-        #F4F4F5 calc(50% + 430px),
-        #F4F4F5 100%
-    ) !important;
+/* First element should have no gap above */
+.block-container > div:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
-/* White strip from very top to bottom */
-section[data-testid="stMain"] {
-    background: linear-gradient(
-        to right,
-        #F4F4F5 0%,
-        #F4F4F5 calc(50% - 430px),
-        #FFFFFF calc(50% - 430px),
-        #FFFFFF calc(50% + 430px),
-        #F4F4F5 calc(50% + 430px),
-        #F4F4F5 100%
-    ) !important;
-    /* Border lines */
-    background-image:
-        linear-gradient(#E4E4E7, #E4E4E7),
-        linear-gradient(#E4E4E7, #E4E4E7),
-        linear-gradient(
-            to right,
-            #F4F4F5 0%,
-            #F4F4F5 calc(50% - 430px),
-            #FFFFFF calc(50% - 430px),
-            #FFFFFF calc(50% + 430px),
-            #F4F4F5 calc(50% + 430px),
-            #F4F4F5 100%
-        ) !important;
-    background-size:
-        1px 100%,
-        1px 100%,
-        100% 100% !important;
-    background-position:
-        calc(50% - 430px) 0,
-        calc(50% + 430px) 0,
-        0 0 !important;
-    background-repeat: no-repeat !important;
+.block-container .element-container:first-child {
+    margin-top: 0 !important;
 }
 
 /* ==================== SIDEBAR ==================== */
 [data-testid="stSidebar"] {
-    background-color: #F4F4F5 !important;
-    border-right: 1px solid #E4E4E7 !important;
+    background-color: rgb(15,10,26) !important;
+    border-right: 1px solid rgba(255,255,255,0.1) !important;
 }
 
-/* Push sidebar content to the very top */
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
     padding-top: 0.5rem !important;
     gap: 0 !important;
@@ -123,7 +147,7 @@ section[data-testid="stMain"] {
 }
 
 [data-testid="stSidebar"] .stCaption {
-    color: #A1A1AA !important;
+    color: var(--text-muted) !important;
     font-size: 0.7rem !important;
 }
 
@@ -136,11 +160,7 @@ section[data-testid="stMain"] {
     margin: 0.3rem 0 !important;
 }
 
-[data-testid="stSidebar"] .element-container {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-}
-
+[data-testid="stSidebar"] .element-container,
 [data-testid="stSidebar"] .stElementContainer {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -151,20 +171,19 @@ section[data-testid="stMain"] {
     margin-bottom: 0.1rem !important;
 }
 
-
 /* ==================== TYPOGRAPHY ==================== */
 h1 {
-    color: var(--text-primary) !important;
+    color: #FFFFFF !important;
     font-weight: 700 !important;
     font-size: 2.25rem !important;
     letter-spacing: -0.5px !important;
     margin-bottom: 0.75rem !important;
     padding-bottom: 0.75rem !important;
-    border-bottom: 2px solid #E4E4E7;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
 }
 
 h2 {
-    color: var(--text-primary) !important;
+    color: #FFFFFF !important;
     font-weight: 600 !important;
     font-size: 1.5rem !important;
     margin-top: 1rem !important;
@@ -174,7 +193,7 @@ h2 {
 }
 
 h3 {
-    color: var(--text-primary) !important;
+    color: #FFFFFF !important;
     font-weight: 600 !important;
     font-size: 1.2rem !important;
     margin-top: 0.75rem !important;
@@ -182,7 +201,7 @@ h3 {
 }
 
 h4 {
-    color: var(--text-primary) !important;
+    color: #FFFFFF !important;
     font-weight: 500 !important;
 }
 
@@ -192,7 +211,7 @@ p, div, span, li {
 }
 
 strong, b {
-    color: #18181B !important;
+    color: #FFFFFF !important;
 }
 
 /* ==================== SPACING ==================== */
@@ -216,13 +235,13 @@ strong, b {
     font-weight: 600 !important;
     font-size: 0.95rem !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(173, 70, 255, 0.3) !important;
 }
 
 .stButton > button[kind="primary"]:hover,
 .stButton > button[type="primary"]:hover {
     background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+    box-shadow: 0 4px 14px rgba(173, 70, 255, 0.4) !important;
     transform: translateY(-1px) !important;
 }
 
@@ -249,12 +268,12 @@ strong, b {
     color: white !important;
     border: none !important;
     font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 2px 8px rgba(173, 70, 255, 0.25) !important;
 }
 
 .stButton > button[type="submit"]:hover {
     background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 4px 14px rgba(173, 70, 255, 0.35) !important;
     transform: translateY(-1px) !important;
 }
 
@@ -273,7 +292,7 @@ strong, b {
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
     border-color: var(--primary) !important;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+    box-shadow: 0 0 0 2px rgba(173, 70, 255, 0.2) !important;
     outline: none !important;
     background-color: var(--bg-card-hover) !important;
 }
@@ -291,7 +310,6 @@ strong, b {
 }
 
 /* ==================== INFO BOXES ==================== */
-/* Remove Streamlit's default wrapper padding so boxes align with other elements */
 .stAlert {
     border-radius: var(--radius-md) !important;
     border: none !important;
@@ -299,7 +317,6 @@ strong, b {
     margin: 0.5rem 0 !important;
 }
 
-/* The inner notification element carries the visual styling */
 [data-baseweb="notification"] {
     margin: 0 !important;
     border-radius: var(--radius-md) !important;
@@ -387,7 +404,7 @@ audio {
 }
 
 .stMarkdown a {
-    color: var(--primary) !important;
+    color: var(--primary-light) !important;
     text-decoration: none !important;
     border-bottom: 1px solid transparent;
     transition: all 0.2s ease;
@@ -408,8 +425,8 @@ audio {
 }
 
 .stMarkdown code {
-    background-color: var(--bg-card);
-    color: var(--primary-dark);
+    background-color: var(--bg-elevated);
+    color: var(--primary-light);
     padding: 0.15rem 0.35rem;
     border-radius: 4px;
     font-family: 'Monaco', 'Courier New', monospace;
@@ -457,13 +474,13 @@ form button[type="submit"] {
     border-radius: var(--radius-md) !important;
     padding: 0.6rem 1.5rem !important;
     font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 2px 8px rgba(173, 70, 255, 0.25) !important;
 }
 
 form button[kind="primaryFormSubmit"]:hover,
 form button[type="submit"]:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 4px 14px rgba(173, 70, 255, 0.35) !important;
 }
 
 /* ==================== AUDIO RECORDER ==================== */
@@ -486,7 +503,7 @@ form button[type="submit"]:hover {
 }
 
 .streamlit-expanderContent strong {
-    color: #18181B !important;
+    color: #FFFFFF !important;
 }
 
 /* ==================== SCORE DISPLAY ==================== */
@@ -508,7 +525,7 @@ table {
 }
 
 th {
-    color: #18181B !important;
+    color: #FFFFFF !important;
     background-color: var(--bg-card) !important;
 }
 
@@ -557,12 +574,26 @@ textarea::-webkit-scrollbar-thumb:hover {
     }
 }
 
+/* ==================== LANDING PAGE CARD BUTTONS ==================== */
+/* Voice mode button inside card */
+.stColumn:first-child .stButton > button[type="primary"] {
+    background: linear-gradient(135deg, #AD46FF, #8E51FF) !important;
+    border-radius: 12px !important;
+    margin-top: 16px !important;
+    box-shadow: 0 4px 14px rgba(173,70,255,0.35) !important;
+}
+
+.stColumn:first-child .stButton > button[type="primary"]:hover {
+    background: linear-gradient(135deg, #C084FC, #AD46FF) !important;
+    box-shadow: 0 6px 20px rgba(173,70,255,0.5) !important;
+}
+
 /* ==================== SIDEBAR BUTTONS ==================== */
 [data-testid="stSidebar"] .stButton > button {
     font-size: 0.8rem !important;
     padding: 0.4rem 0.6rem !important;
-    background-color: #FFFFFF !important;
-    border: 1px solid #E4E4E7 !important;
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
     color: var(--text-secondary) !important;
     font-weight: 400 !important;
     text-align: left !important;

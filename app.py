@@ -1,5 +1,7 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import time
+import urllib.parse
 from streamlit_autorefresh import st_autorefresh
 
 # Import from our modules
@@ -218,11 +220,15 @@ def main():
     # Load custom CSS styles
     load_css()
     
-    st.title("AI English Speaking Evaluator")
-    st.caption("Use the ≫ arrow at the top left to skip between sections.")
+    # Show title/caption only during test (not on landing page)
+    if st.session_state.step not in ("START",):
+        st.title("AI English Speaking Evaluator")
+        st.caption("Use the ≫ arrow at the top left to skip between sections.")
 
     # Demo panel in sidebar (collapsed by default — open via arrow)
-    with st.sidebar:
+    SHOW_DEBUG_PANEL = False  # Set to True to re-enable the demo/debug sidebar
+    if SHOW_DEBUG_PANEL:
+      with st.sidebar:
         st.markdown("### Demo Panel")
         st.caption("Skip ahead to any section for demo purposes.")
         st.write("---")
@@ -268,68 +274,208 @@ def main():
             st.session_state.step = "SCORING"
             st.rerun()
 
+    # Handle mode selection from landing page (via URL query params)
+    params = st.query_params
+    if params.get('start') == 'true' and params.get('mode') in ('voice', 'text'):
+        st.session_state.test_mode = params.get('mode')
+        st.session_state.step = "PART_1"
+        st.query_params.clear()
+        st.rerun()
+
     if st.session_state.step == "START":
-        st.write("Hello! Ready to start your English test?")
-        if st.button("Begin"):
-            st.session_state.step = "ONBOARDING"
-            st.session_state.onboarding_step = 0
-            st.rerun()
+        # ---------- Landing page (Figma-exact design) ----------
+        # Helper: convert SVG string to a data-URI <img> tag (works in any iframe)
+        def _icon(svg, w=20, h=20, style=''):
+            uri = 'data:image/svg+xml,' + urllib.parse.quote(svg, safe='')
+            return f'<img src="{uri}" width="{w}" height="{h}" style="display:block;{style}" />'
 
-    elif st.session_state.step == "ONBOARDING":
-        if st.session_state.onboarding_step == 0:
-            st.write("### Introduction")
-            st.write("Hello, I'm your Speaking Assistant. My goal is to estimate your English level through a short conversation.")
-            if st.button("Continue"):
-                st.session_state.onboarding_step = 1
-                st.rerun()
+        # SVG sources (with xmlns for data-URI compatibility)
+        _mic_w = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>')
+        _mic_p = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#AD46FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>')
+        _star = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#DAB2FF"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/><path d="M19 13l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/></svg>', 16, 16)
+        _speaker = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#DAB2FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>')
+        _globe = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#DAB2FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>')
+        _clock = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#DAB2FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>')
+        _check = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(74,222,128,0.15)" stroke="#4ADE80" stroke-width="1.5"/><path d="M8 12l3 3 5-6" fill="none" stroke="#4ADE80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>', 16, 16)
+        _kbd = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="12" rx="2" ry="2"/><path d="M6 8h0M10 8h0M14 8h0M18 8h0M8 12h8M6 12h0M18 12h0"/></svg>')
+        _arrow = _icon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>', 16, 16)
 
-        elif st.session_state.onboarding_step == 1:
-            st.write("### Test Structure")
-            st.write("We will do three parts: a short interview, a 2-minute story, and a deeper discussion. The whole process takes about 11\u201314 minutes.")
-            if st.button("Continue"):
-                st.session_state.onboarding_step = 2
-                st.rerun()
+        landing_html = f"""<!DOCTYPE html><html><head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <style>
+            *{{box-sizing:border-box;margin:0;padding:0}}
+            body{{
+                font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+                color:#fff;
+                background:linear-gradient(143.67deg,
+                    rgb(15,10,26) 0%,rgb(16,11,30) 7.14%,rgb(18,12,33) 14.29%,
+                    rgb(20,13,37) 21.43%,rgb(21,14,41) 28.57%,rgb(23,14,45) 35.71%,
+                    rgb(24,15,49) 42.86%,rgb(26,16,53) 50%,rgb(24,14,51) 60%,
+                    rgb(23,13,49) 70%,rgb(21,11,46) 80%,rgb(20,9,44) 90%,
+                    rgb(18,8,42) 100%);
+                min-height:100vh;overflow-x:hidden;
+            }}
+            .topbar{{
+                display:flex;align-items:center;
+                padding:18px 32px;
+                border-bottom:1px solid rgba(255,255,255,0.1);
+                background:rgba(255,255,255,0.05);
+            }}
+            .topbar-left{{display:flex;align-items:center;gap:12px;}}
+            .logo{{
+                width:40px;height:40px;border-radius:14px;flex-shrink:0;
+                background:linear-gradient(135deg,#AD46FF,#8E51FF);
+                display:flex;align-items:center;justify-content:center;
+                box-shadow:0 10px 15px rgba(173,70,255,0.3),0 4px 6px rgba(173,70,255,0.3);
+            }}
+            .brand-title{{font-size:18px;font-weight:500;letter-spacing:-0.89px;color:#fff;line-height:28px;}}
+            .brand-sub{{font-size:12px;color:rgba(218,178,255,0.6);line-height:16px;}}
+            .hero{{text-align:center;padding:40px 24px 0 24px;}}
+            .badge{{
+                display:inline-flex;align-items:center;gap:6px;
+                background:rgba(173,70,255,0.2);border-radius:9999px;
+                padding:6px 16px;font-size:14px;color:#DAB2FF;letter-spacing:-0.15px;line-height:20px;
+            }}
+            .hero h1{{font-size:36px;font-weight:500;letter-spacing:-0.53px;margin:20px 0 12px 0;color:#fff;line-height:40px;border:none;padding:0;}}
+            .hero-desc{{font-size:16px;color:rgba(233,212,255,0.6);max-width:450px;margin:0 auto;line-height:24px;letter-spacing:-0.31px;}}
+            .features{{display:flex;justify-content:center;gap:16px;padding:48px 24px 0 24px;}}
+            .feat{{
+                background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+                border-radius:16px;padding:16px 24px;text-align:center;width:213px;min-height:98px;
+            }}
+            .feat img{{margin:0 auto 8px auto;}}
+            .feat-title{{font-size:14px;color:#F3E8FF;letter-spacing:-0.15px;line-height:20px;}}
+            .feat-sub{{font-size:12px;color:rgba(218,178,255,0.5);margin-top:2px;line-height:16px;}}
+            .mode-label{{
+                text-align:center;padding:48px 0 0 0;
+                font-size:14px;font-weight:500;color:rgba(218,178,255,0.5);
+                text-transform:uppercase;letter-spacing:1.25px;line-height:20px;
+            }}
+            .modes{{display:flex;justify-content:center;gap:24px;padding:24px 24px 0 24px;}}
+            .mode-card{{
+                background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);
+                border-radius:16px;padding:24px;width:372px;text-align:left;
+                cursor:pointer;transition:border-color 0.2s,background 0.2s;
+            }}
+            .mode-card:hover{{border-color:rgba(173,70,255,0.5);background:rgba(255,255,255,0.08);}}
+            .mode-card.selected{{border-color:#AD46FF;background:rgba(173,70,255,0.12);}}
+            .mode-icon{{
+                width:40px;height:40px;border-radius:14px;
+                display:inline-flex;align-items:center;justify-content:center;
+            }}
+            .mode-icon.voice{{background:rgba(173,70,255,0.2);}}
+            .mode-icon.text{{background:rgba(255,255,255,0.1);}}
+            .rec-badge{{
+                display:inline-block;background:rgba(254,154,0,0.2);color:#FFD230;
+                font-size:12px;font-weight:500;padding:2px 8px;
+                border-radius:9999px;margin-left:8px;vertical-align:middle;line-height:16px;
+            }}
+            .mode-header{{display:flex;align-items:center;gap:8px;margin-bottom:16px;}}
+            .mode-card h3{{font-size:18px;font-weight:500;color:#fff;margin:0 0 12px 0;letter-spacing:-0.44px;line-height:28px;}}
+            .mode-list{{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;}}
+            .mode-list li{{
+                display:flex;align-items:center;gap:8px;
+                font-size:14px;font-weight:500;color:rgba(233,212,255,0.6);
+                letter-spacing:-0.15px;line-height:20px;
+            }}
+            .mode-list li img{{flex-shrink:0;}}
+            .start-row{{display:flex;justify-content:center;padding:40px 0 48px 0;}}
+            .start-btn{{
+                background:rgba(255,255,255,0.1);border:none;border-radius:14px;
+                padding:14px 32px;font-size:16px;font-weight:500;font-family:inherit;
+                color:rgba(255,255,255,0.3);cursor:default;
+                display:inline-flex;align-items:center;gap:8px;
+                transition:all 0.2s;letter-spacing:-0.31px;
+            }}
+            .start-btn.active{{
+                background:linear-gradient(135deg,#AD46FF,#8E51FF);color:#fff;
+                cursor:pointer;box-shadow:0 4px 14px rgba(173,70,255,0.4);
+            }}
+            .start-btn.active:hover{{
+                background:linear-gradient(135deg,#C084FC,#AD46FF);
+                box-shadow:0 6px 20px rgba(173,70,255,0.5);
+            }}
+        </style></head><body>
 
-        elif st.session_state.onboarding_step == 2:
-            st.write("### Consent")
-            st.write("I will record your responses to analyze your fluency and vocabulary. Are you ready to begin?")
-            if st.button("Yes, I'm ready"):
-                st.session_state.step = "MODE_SELECTION"
-                st.rerun()
+        <div class="topbar">
+            <div class="topbar-left">
+                <div class="logo">{_mic_w}</div>
+                <div>
+                    <div class="brand-title">AI Speaking Evaluator</div>
+                    <div class="brand-sub">IELTS Practice &amp; Assessment</div>
+                </div>
+            </div>
+        </div>
 
-    elif st.session_state.step == "MODE_SELECTION":
-        st.write("### Choose Your Mode")
-        st.write("Select how you'd like to take the test.")
+        <div class="hero">
+            <div class="badge">{_star} AI-Powered Assessment</div>
+            <h1>Test Your English Speaking Skills</h1>
+            <p class="hero-desc">Get an authentic IELTS-style speaking evaluation with detailed feedback and band score assessment powered by AI.</p>
+        </div>
 
-        col1, col2 = st.columns(2, gap="medium")
+        <div class="features">
+            <div class="feat">{_speaker}<div class="feat-title">3-Part Interview</div><div class="feat-sub">IELTS format</div></div>
+            <div class="feat">{_globe}<div class="feat-title">Band 1&ndash;9 Score</div><div class="feat-sub">CEFR aligned</div></div>
+            <div class="feat">{_clock}<div class="feat-title">~15 Minutes</div><div class="feat-sub">Full assessment</div></div>
+        </div>
 
-        with col1:
-            st.markdown("""
-**Voice Mode** *(Recommended)*
+        <div class="mode-label">Choose Your Mode</div>
 
-- Tests your actual speaking ability
-- Natural conversation flow
-- Authentic IELTS-style assessment
-- Fluency & pronunciation analysis
-""")
-            if st.button("Start with Voice", use_container_width=True, type="primary"):
-                st.session_state.test_mode = 'voice'
-                st.session_state.step = "PART_1"
-                st.rerun()
+        <div class="modes">
+            <div class="mode-card" id="card-voice" onclick="selectMode('voice')">
+                <div class="mode-header">
+                    <div class="mode-icon voice">{_mic_p}</div>
+                    <span class="rec-badge">Recommended</span>
+                </div>
+                <h3>Voice Mode</h3>
+                <ul class="mode-list">
+                    <li>{_check} Tests your actual speaking ability</li>
+                    <li>{_check} Natural conversation flow</li>
+                    <li>{_check} Authentic IELTS-style assessment</li>
+                    <li>{_check} Fluency &amp; pronunciation analysis</li>
+                </ul>
+            </div>
+            <div class="mode-card" id="card-text" onclick="selectMode('text')">
+                <div class="mode-header">
+                    <div class="mode-icon text">{_kbd}</div>
+                </div>
+                <h3>Text Mode</h3>
+                <ul class="mode-list">
+                    <li>{_check} Type your responses instead</li>
+                    <li>{_check} No microphone needed</li>
+                    <li>{_check} Simplified assessment</li>
+                    <li>{_check} Good for quiet environments</li>
+                </ul>
+            </div>
+        </div>
 
-        with col2:
-            st.markdown("""
-**Text Mode**
+        <div class="start-row">
+            <button class="start-btn" id="start-btn" onclick="startTest()">
+                Start Test {_arrow}
+            </button>
+        </div>
 
-- Type your responses instead
-- No microphone needed
-- Simplified assessment
-- Good for quiet environments
-""")
-            if st.button("Start with Text", use_container_width=True):
-                st.session_state.test_mode = 'text'
-                st.session_state.step = "PART_1"
-                st.rerun()
+        <script>
+            var selectedMode=null;
+            function selectMode(m){{
+                selectedMode=m;
+                document.getElementById('card-voice').classList.toggle('selected',m==='voice');
+                document.getElementById('card-text').classList.toggle('selected',m==='text');
+                document.getElementById('start-btn').classList.add('active');
+            }}
+            function startTest(){{
+                if(!selectedMode) return;
+                try {{
+                    var loc=window.parent.location;
+                    loc.href=loc.origin+loc.pathname+'?mode='+selectedMode+'&start=true';
+                }} catch(e) {{
+                    window.open('/?mode='+selectedMode+'&start=true','_parent');
+                }}
+            }}
+        </script>
+        </body></html>"""
+
+        components.html(landing_html, height=920, scrolling=False)
 
     elif st.session_state.step == "PART_1":
         # Initialize Part 1 when we first enter
