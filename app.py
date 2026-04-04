@@ -304,22 +304,17 @@ def main():
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <style>
             *{{box-sizing:border-box;margin:0;padding:0}}
-            body{{
+            html,body{{
                 font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
                 color:#fff;
-                background:linear-gradient(143.67deg,
-                    rgb(15,10,26) 0%,rgb(16,11,30) 7.14%,rgb(18,12,33) 14.29%,
-                    rgb(20,13,37) 21.43%,rgb(21,14,41) 28.57%,rgb(23,14,45) 35.71%,
-                    rgb(24,15,49) 42.86%,rgb(26,16,53) 50%,rgb(24,14,51) 60%,
-                    rgb(23,13,49) 70%,rgb(21,11,46) 80%,rgb(20,9,44) 90%,
-                    rgb(18,8,42) 100%);
-                min-height:100vh;overflow-x:hidden;
+                background:transparent;
+                overflow-x:hidden;
             }}
             .topbar{{
                 display:flex;align-items:center;
                 padding:18px 32px;
                 border-bottom:1px solid rgba(255,255,255,0.1);
-                background:rgba(255,255,255,0.05);
+                background:transparent;
             }}
             .topbar-left{{display:flex;align-items:center;gap:12px;}}
             .logo{{
@@ -330,7 +325,8 @@ def main():
             }}
             .brand-title{{font-size:18px;font-weight:500;letter-spacing:-0.89px;color:#fff;line-height:28px;}}
             .brand-sub{{font-size:12px;color:rgba(218,178,255,0.6);line-height:16px;}}
-            .hero{{text-align:center;padding:40px 24px 0 24px;}}
+            .content{{max-width:860px;margin:0 auto;padding:0 24px;}}
+            .hero{{text-align:center;padding:40px 0 0 0;}}
             .badge{{
                 display:inline-flex;align-items:center;gap:6px;
                 background:rgba(173,70,255,0.2);border-radius:9999px;
@@ -338,7 +334,7 @@ def main():
             }}
             .hero h1{{font-size:36px;font-weight:500;letter-spacing:-0.53px;margin:20px 0 12px 0;color:#fff;line-height:40px;border:none;padding:0;}}
             .hero-desc{{font-size:16px;color:rgba(233,212,255,0.6);max-width:450px;margin:0 auto;line-height:24px;letter-spacing:-0.31px;}}
-            .features{{display:flex;justify-content:center;gap:16px;padding:48px 24px 0 24px;}}
+            .features{{display:flex;justify-content:center;gap:16px;padding:48px 0 0 0;}}
             .feat{{
                 background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
                 border-radius:16px;padding:16px 24px;text-align:center;width:213px;min-height:98px;
@@ -351,7 +347,7 @@ def main():
                 font-size:14px;font-weight:500;color:rgba(218,178,255,0.5);
                 text-transform:uppercase;letter-spacing:1.25px;line-height:20px;
             }}
-            .modes{{display:flex;justify-content:center;gap:24px;padding:24px 24px 0 24px;}}
+            .modes{{display:flex;justify-content:center;gap:24px;padding:24px 0 0 0;}}
             .mode-card{{
                 background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);
                 border-radius:16px;padding:24px;width:372px;text-align:left;
@@ -407,52 +403,54 @@ def main():
             </div>
         </div>
 
-        <div class="hero">
-            <div class="badge">{_star} AI-Powered Assessment</div>
-            <h1>Test Your English Speaking Skills</h1>
-            <p class="hero-desc">Get an authentic IELTS-style speaking evaluation with detailed feedback and band score assessment powered by AI.</p>
-        </div>
-
-        <div class="features">
-            <div class="feat">{_speaker}<div class="feat-title">3-Part Interview</div><div class="feat-sub">IELTS format</div></div>
-            <div class="feat">{_globe}<div class="feat-title">Band 1&ndash;9 Score</div><div class="feat-sub">CEFR aligned</div></div>
-            <div class="feat">{_clock}<div class="feat-title">~15 Minutes</div><div class="feat-sub">Full assessment</div></div>
-        </div>
-
-        <div class="mode-label">Choose Your Mode</div>
-
-        <div class="modes">
-            <div class="mode-card" id="card-voice" onclick="selectMode('voice')">
-                <div class="mode-header">
-                    <div class="mode-icon voice">{_mic_p}</div>
-                    <span class="rec-badge">Recommended</span>
-                </div>
-                <h3>Voice Mode</h3>
-                <ul class="mode-list">
-                    <li>{_check} Tests your actual speaking ability</li>
-                    <li>{_check} Natural conversation flow</li>
-                    <li>{_check} Authentic IELTS-style assessment</li>
-                    <li>{_check} Fluency &amp; pronunciation analysis</li>
-                </ul>
+        <div class="content">
+            <div class="hero">
+                <div class="badge">{_star} AI-Powered Assessment</div>
+                <h1>Test Your English Speaking Skills</h1>
+                <p class="hero-desc">Get an authentic IELTS-style speaking evaluation with detailed feedback and band score assessment powered by AI.</p>
             </div>
-            <div class="mode-card" id="card-text" onclick="selectMode('text')">
-                <div class="mode-header">
-                    <div class="mode-icon text">{_kbd}</div>
-                </div>
-                <h3>Text Mode</h3>
-                <ul class="mode-list">
-                    <li>{_check} Type your responses instead</li>
-                    <li>{_check} No microphone needed</li>
-                    <li>{_check} Simplified assessment</li>
-                    <li>{_check} Good for quiet environments</li>
-                </ul>
-            </div>
-        </div>
 
-        <div class="start-row">
-            <button class="start-btn" id="start-btn" onclick="startTest()">
-                Start Test {_arrow}
-            </button>
+            <div class="features">
+                <div class="feat">{_speaker}<div class="feat-title">3-Part Interview</div><div class="feat-sub">IELTS format</div></div>
+                <div class="feat">{_globe}<div class="feat-title">Band 1&ndash;9 Score</div><div class="feat-sub">CEFR aligned</div></div>
+                <div class="feat">{_clock}<div class="feat-title">~15 Minutes</div><div class="feat-sub">Full assessment</div></div>
+            </div>
+
+            <div class="mode-label">Choose Your Mode</div>
+
+            <div class="modes">
+                <div class="mode-card" id="card-voice" onclick="selectMode('voice')">
+                    <div class="mode-header">
+                        <div class="mode-icon voice">{_mic_p}</div>
+                        <span class="rec-badge">Recommended</span>
+                    </div>
+                    <h3>Voice Mode</h3>
+                    <ul class="mode-list">
+                        <li>{_check} Tests your actual speaking ability</li>
+                        <li>{_check} Natural conversation flow</li>
+                        <li>{_check} Authentic IELTS-style assessment</li>
+                        <li>{_check} Fluency &amp; pronunciation analysis</li>
+                    </ul>
+                </div>
+                <div class="mode-card" id="card-text" onclick="selectMode('text')">
+                    <div class="mode-header">
+                        <div class="mode-icon text">{_kbd}</div>
+                    </div>
+                    <h3>Text Mode</h3>
+                    <ul class="mode-list">
+                        <li>{_check} Type your responses instead</li>
+                        <li>{_check} No microphone needed</li>
+                        <li>{_check} Simplified assessment</li>
+                        <li>{_check} Good for quiet environments</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="start-row">
+                <button class="start-btn" id="start-btn" onclick="startTest()">
+                    Start Test {_arrow}
+                </button>
+            </div>
         </div>
 
         <script>

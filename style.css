@@ -27,10 +27,11 @@
 }
 
 /* ==================== DARK BACKGROUND EVERYWHERE ==================== */
+html, body,
 .main,
-.main .stAppViewBlockContainer,
 section[data-testid="stMain"],
-[data-testid="stAppViewContainer"] {
+[data-testid="stAppViewContainer"],
+[data-testid="stApp"] {
     background: linear-gradient(144deg,
         rgb(15,10,26) 0%,
         rgb(16,11,30) 7%,
@@ -45,18 +46,8 @@ section[data-testid="stMain"],
         rgb(21,11,46) 80%,
         rgb(20,9,44) 90%,
         rgb(18,8,42) 100%) !important;
-    background-image: none !important;
-    background-color: rgb(18,12,33) !important;
+    background-attachment: fixed !important;
     border: none !important;
-}
-
-/* Use background-color fallback since gradient on background-image gets cleared */
-section[data-testid="stMain"] {
-    background: rgb(18,12,33) !important;
-    background-image: none !important;
-    background-size: unset !important;
-    background-position: unset !important;
-    background-repeat: unset !important;
 }
 
 .main .stAppViewBlockContainer {
@@ -81,7 +72,7 @@ header[data-testid="stHeader"] {
 .stHtml,
 .element-container:has(iframe),
 [data-testid="stCustomComponentV1"] {
-    margin-top: 0 !important;
+    margin-top: -1rem !important;
     padding-top: 0 !important;
     margin-bottom: 0 !important;
 }
@@ -91,6 +82,7 @@ header[data-testid="stHeader"] {
 .element-container iframe {
     display: block !important;
     border: none !important;
+    background: transparent !important;
 }
 
 /* ==================== LAYOUT ==================== */
@@ -103,24 +95,40 @@ header[data-testid="stHeader"] {
     margin: 0 auto !important;
 }
 
-[data-testid="stAppViewBlockContainer"] {
-    padding-top: 0 !important;
-}
-
+/* Kill ALL top spacing in the Streamlit container chain */
+[data-testid="stAppViewBlockContainer"],
+[data-testid="stAppViewContainer"],
+[data-testid="stMainBlockContainer"],
 section[data-testid="stMain"],
 section[data-testid="stMain"] > div,
-section[data-testid="stMain"] > div > div {
+section[data-testid="stMain"] > div > div,
+section[data-testid="stMain"] > div > div > div {
     padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Remove gap only when first child is an iframe (landing page) */
+[data-testid="stVerticalBlock"]:has(> div:first-child iframe) {
+    gap: 0 !important;
+}
+
+/* Make container full-width on landing page so the topbar line extends edge-to-edge */
+.block-container:has(iframe) {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.stAppViewBlockContainer:has(iframe) {
+    max-width: 100% !important;
 }
 
 /* First element should have no gap above */
-.block-container > div:first-child {
+.block-container .element-container:first-child,
+.block-container > div:first-child,
+.block-container > div:first-child > div:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
-}
-
-.block-container .element-container:first-child {
-    margin-top: 0 !important;
 }
 
 /* ==================== SIDEBAR ==================== */
