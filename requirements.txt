@@ -1,4 +1,5 @@
-streamlit
 openai
 python-dotenv
-streamlit-autorefresh
+fastapi
+uvicorn[standard]
+python-multipart

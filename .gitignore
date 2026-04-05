@@ -19,3 +19,4 @@ ENV/
 
 # Streamlit
 .streamlit/secrets.toml
+_landing_component/

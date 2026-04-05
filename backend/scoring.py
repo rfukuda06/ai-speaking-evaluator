@@ -10,7 +10,7 @@ from utils import format_conversation_history
 def calculate_response_metrics(conversation_history):
     """
     Calculate basic response metrics from conversation history
-    
+
     Returns dict with:
     - total_responses: total number of user responses
     - completed_responses: responses that aren't timeouts
@@ -24,24 +24,24 @@ def calculate_response_metrics(conversation_history):
             'timeout_count': 0,
             'avg_word_count': 0
         }
-    
+
     user_responses = [
-        entry for entry in conversation_history 
+        entry for entry in conversation_history
         if entry['role'] in ['user', 'candidate']
     ]
-    
+
     # Separate real responses from timeouts
     real_responses = [
-        r for r in user_responses 
+        r for r in user_responses
         if not r['content'].startswith('[No response')
     ]
-    
+
     timeout_count = len(user_responses) - len(real_responses)
-    
+
     # Calculate average word count from real responses
     word_counts = [len(r['content'].split()) for r in real_responses]
     avg_word_count = sum(word_counts) / len(word_counts) if word_counts else 0
-    
+
     return {
         'total_responses': len(user_responses),
         'completed_responses': len(real_responses),
@@ -53,7 +53,7 @@ def calculate_response_metrics(conversation_history):
 def calculate_voice_metrics(voice_timing_data):
     """
     Calculate aggregated voice metrics from timing data
-    
+
     Returns dict with WPM, pause statistics, etc.
     """
     if not voice_timing_data:
@@ -67,27 +67,27 @@ def calculate_voice_metrics(voice_timing_data):
             'pause_frequency_per_min': 0,
             'total_speaking_time': 0
         }
-    
+
     # Extract all WPM values
     wpm_values = [d['wpm'] for d in voice_timing_data if d['wpm'] > 0]
-    
+
     # Total speaking time
     total_duration = sum(d['duration'] for d in voice_timing_data)
-    
+
     # Total pauses
     total_pauses = sum(d['num_pauses'] for d in voice_timing_data)
-    
+
     # All pause lengths
     all_pauses = []
     for d in voice_timing_data:
         all_pauses.extend(d['pauses'])
-    
+
     # Long pauses
     long_pause_count = sum(d['long_pauses'] for d in voice_timing_data)
-    
+
     # Pause frequency (pauses per minute)
     pause_freq = (total_pauses / total_duration * 60) if total_duration > 0 else 0
-    
+
     return {
         'avg_wpm': round(sum(wpm_values) / len(wpm_values), 1) if wpm_values else 0,
         'wpm_min': round(min(wpm_values), 1) if wpm_values else 0,
@@ -103,27 +103,27 @@ def calculate_voice_metrics(voice_timing_data):
 def calculate_part_specific_metrics(part1_history, part2_history, part3_history):
     """
     Calculate metrics specific to each part of the test
-    
+
     Returns dict with average word counts per part and length assessments
     """
     def get_user_responses(history):
         return [
-            entry['content'] for entry in history 
-            if entry['role'] in ['user', 'candidate'] 
+            entry['content'] for entry in history
+            if entry['role'] in ['user', 'candidate']
             and not entry['content'].startswith('[No response')
         ]
-    
+
     # Part 1 responses
     part1_responses = get_user_responses(part1_history)
     part1_word_counts = [len(r.split()) for r in part1_responses]
     part1_avg = sum(part1_word_counts) / len(part1_word_counts) if part1_word_counts else 0
-    
+
     # Part 2 - separate long response from rounding-off
     part2_responses = get_user_responses(part2_history)
-    
+
     part2_long_words = 0
     part2_rounding_words = []
-    
+
     if part2_responses:
         # Find the long response (usually the longest one or first substantial one)
         for i, response in enumerate(part2_responses):
@@ -132,31 +132,31 @@ def calculate_part_specific_metrics(part1_history, part2_history, part3_history)
                 part2_long_words = word_count
                 part2_rounding_words = [len(r.split()) for r in part2_responses[i+1:]]
                 break
-        
+
         # If no long response found, first is long, rest are rounding
         if part2_long_words == 0 and part2_responses:
             part2_long_words = len(part2_responses[0].split())
             part2_rounding_words = [len(r.split()) for r in part2_responses[1:]]
-    
+
     part2_rounding_avg = sum(part2_rounding_words) / len(part2_rounding_words) if part2_rounding_words else 0
-    
+
     # Part 3 responses
     part3_responses = get_user_responses(part3_history)
     part3_word_counts = [len(r.split()) for r in part3_responses]
     part3_avg = sum(part3_word_counts) / len(part3_word_counts) if part3_word_counts else 0
-    
+
     return {
         'part1_avg_words': round(part1_avg, 1),
         'part1_count': len(part1_word_counts),
         'part1_assessment': 'good' if 20 <= part1_avg <= 50 else ('too_short' if part1_avg < 20 else 'too_long'),
-        
+
         'part2_long_words': part2_long_words,
         'part2_long_assessment': 'good' if part2_long_words >= 150 else ('acceptable' if part2_long_words >= 100 else 'too_short'),
-        
+
         'part2_rounding_avg': round(part2_rounding_avg, 1),
         'part2_rounding_count': len(part2_rounding_words),
         'part2_rounding_assessment': 'good' if 20 <= part2_rounding_avg <= 50 else ('too_short' if part2_rounding_avg < 20 else 'too_long'),
-        
+
         'part3_avg_words': round(part3_avg, 1),
         'part3_count': len(part3_word_counts),
         'part3_assessment': 'good' if 50 <= part3_avg <= 100 else ('too_short' if part3_avg < 50 else 'too_long')
@@ -166,20 +166,20 @@ def calculate_part_specific_metrics(part1_history, part2_history, part3_history)
 def count_timeouts_and_relevance(conversation_history):
     """
     Count timeouts and irrelevant answers by analyzing conversation patterns
-    
+
     Returns dict with counts for penalty calculation
     """
     if not conversation_history:
         return {'timeout_count': 0, 'irrelevant_count': 0}
-    
+
     timeout_count = 0
     irrelevant_count = 0
-    
+
     for i, entry in enumerate(conversation_history):
         # Check for timeouts
         if entry['role'] in ['user', 'candidate'] and entry['content'].startswith('[No response'):
             timeout_count += 1
-        
+
         # Check for irrelevant answers (followed by redirect or "Let's move on")
         if entry['role'] == 'examiner':
             content_lower = entry['content'].lower()
@@ -194,7 +194,7 @@ def count_timeouts_and_relevance(conversation_history):
                         if not conversation_history[j]['content'].startswith('[No response'):
                             irrelevant_count += 1
                         break
-    
+
     return {
         'timeout_count': timeout_count,
         'irrelevant_count': irrelevant_count
@@ -204,16 +204,6 @@ def count_timeouts_and_relevance(conversation_history):
 def generate_metrics_summary(part1_history, part2_history, part3_history, voice_timing_data, test_mode):
     """
     Master function that generates comprehensive metrics for scoring
-    
-    Args:
-        part1_history: Part 1 conversation history
-        part2_history: Part 2 conversation history
-        part3_history: Part 3 conversation history
-        voice_timing_data: Voice timing data (empty list for text mode)
-        test_mode: 'text' or 'voice'
-    
-    Returns:
-        Comprehensive metrics dict for scoring
     """
     # Combine histories for overall metrics
     all_history = []
@@ -223,17 +213,17 @@ def generate_metrics_summary(part1_history, part2_history, part3_history, voice_
         all_history.extend(part2_history)
     if part3_history:
         all_history.extend(part3_history)
-    
+
     # Calculate all metrics
     response_metrics = calculate_response_metrics(all_history)
     part_metrics = calculate_part_specific_metrics(part1_history, part2_history, part3_history)
     timeout_relevance = count_timeouts_and_relevance(all_history)
-    
+
     # Voice metrics if available
     voice_metrics = {}
     if test_mode == 'voice' and voice_timing_data:
         voice_metrics = calculate_voice_metrics(voice_timing_data)
-    
+
     # Combine all metrics
     metrics = {
         'test_mode': test_mode,
@@ -242,30 +232,28 @@ def generate_metrics_summary(part1_history, part2_history, part3_history, voice_
         **timeout_relevance,
         **voice_metrics
     }
-    
+
     return metrics
 
 
 def combine_conversation_histories(part1_history, part2_history, part3_history):
     """
     Combine all conversation histories with part labels
-    
-    Returns list of dicts with added 'part' field
     """
     combined = []
-    
+
     if part1_history:
         for entry in part1_history:
             combined.append({**entry, 'part': 'Part 1'})
-    
+
     if part2_history:
         for entry in part2_history:
             combined.append({**entry, 'part': 'Part 2'})
-    
+
     if part3_history:
         for entry in part3_history:
             combined.append({**entry, 'part': 'Part 3'})
-    
+
     return combined
 
 
@@ -274,17 +262,17 @@ def format_metrics_for_prompt(metrics):
     Format metrics dict into readable text for GPT prompt
     """
     lines = []
-    
+
     # Test mode
     lines.append(f"Test Mode: {metrics.get('test_mode', 'unknown').upper()}")
     lines.append("")
-    
+
     # Response metrics
     lines.append("RESPONSE METRICS:")
     lines.append(f"- Total responses: {metrics.get('completed_responses', 0)}/{metrics.get('total_responses', 0)}")
     lines.append(f"- Average word count: {metrics.get('avg_word_count', 0)} words")
     lines.append("")
-    
+
     # Part-specific metrics
     lines.append("PART-SPECIFIC METRICS:")
     lines.append(f"- Part 1: Avg {metrics.get('part1_avg_words', 0)} words ({metrics.get('part1_count', 0)} responses) - {metrics.get('part1_assessment', 'N/A')}")
@@ -292,14 +280,14 @@ def format_metrics_for_prompt(metrics):
     lines.append(f"- Part 2 Rounding-off: Avg {metrics.get('part2_rounding_avg', 0)} words ({metrics.get('part2_rounding_count', 0)} responses) - {metrics.get('part2_rounding_assessment', 'N/A')}")
     lines.append(f"- Part 3: Avg {metrics.get('part3_avg_words', 0)} words ({metrics.get('part3_count', 0)} responses) - {metrics.get('part3_assessment', 'N/A')}")
     lines.append("")
-    
+
     # Penalties
     lines.append("PENALTIES:")
     lines.append(f"- Timeouts: {metrics.get('timeout_count', 0)} (each = -0.5 from Task Achievement)")
     lines.append(f"- Irrelevant answers: {metrics.get('irrelevant_count', 0)} (each = -0.5 from Task Achievement)")
     lines.append(f"- TOTAL PENALTY: -{(metrics.get('timeout_count', 0) + metrics.get('irrelevant_count', 0)) * 0.5} bands from Task Achievement")
     lines.append("")
-    
+
     # Voice metrics if available
     if metrics.get('test_mode') == 'voice' and metrics.get('avg_wpm', 0) > 0:
         lines.append("VOICE/FLUENCY METRICS:")
@@ -311,24 +299,20 @@ def format_metrics_for_prompt(metrics):
         lines.append(f"- Long pauses (>1.5s): {metrics.get('long_pause_count', 0)}")
         lines.append(f"- Pause frequency: {metrics.get('pause_frequency_per_min', 0)} pauses/min")
         lines.append("")
-    
+
     return "\n".join(lines)
 
 
 def format_full_conversation(combined_history, voice_timing_data=None):
     """
     Format combined conversation history for GPT prompt
-    
-    Args:
-        combined_history: List of conversation entries
-        voice_timing_data: Optional list of voice timing data to add pause markers
     """
     if not combined_history:
         return "No conversation history available."
-    
+
     lines = []
     current_part = None
-    
+
     for entry in combined_history:
         # Add part header when it changes
         if entry.get('part') != current_part:
@@ -337,13 +321,13 @@ def format_full_conversation(combined_history, voice_timing_data=None):
                 lines.append("")
             lines.append(f"=== {current_part} ===")
             lines.append("")
-        
+
         # Format the exchange
         if entry['role'] == 'examiner':
             lines.append(f"Examiner: {entry['content']}")
         elif entry['role'] in ['user', 'candidate']:
             lines.append(f"Candidate: {entry['content']}")
-    
+
     return "\n".join(lines)
 
 
@@ -383,7 +367,7 @@ def get_cefr_description(cefr_level):
 def score_speaking_test(part1_history, part2_history, part3_history, metrics, test_mode, voice_timing_data=None):
     """
     Score the speaking test using GPT-4 with detailed IELTS rubric
-    
+
     Args:
         part1_history: Part 1 conversation history
         part2_history: Part 2 conversation history
@@ -391,7 +375,7 @@ def score_speaking_test(part1_history, part2_history, part3_history, metrics, te
         metrics: Dict of calculated metrics
         test_mode: 'text' or 'voice'
         voice_timing_data: Optional list of voice timing data with word-level timestamps
-    
+
     Returns:
         Dict with scores, final_band, cefr_level, feedback, etc.
     """
@@ -400,10 +384,10 @@ def score_speaking_test(part1_history, part2_history, part3_history, metrics, te
         combined_history = combine_conversation_histories(part1_history, part2_history, part3_history)
         formatted_conversation = format_full_conversation(combined_history, voice_timing_data)
         formatted_metrics = format_metrics_for_prompt(metrics)
-        
+
         # Calculate total penalty
         total_penalty = (metrics.get('timeout_count', 0) + metrics.get('irrelevant_count', 0)) * 0.5
-        
+
         # Build comprehensive scoring prompt
         scoring_prompt = f"""You are an experienced IELTS Speaking examiner. Score this speaking test on the IELTS 1-9 band scale.
 
@@ -426,7 +410,7 @@ SCORING CRITERIA (IELTS 1-9 Band Scale):
    - Pauses: Few, well-placed at clause/sentence boundaries = high; frequent mid-clause pauses = lower
    - Hesitation and repetition: Minimal = high
    - Natural speech rhythm and flow
-   
+
    Band 9: Speaks fluently with minimal hesitation. Develops topics fully and coherently.
    Band 7: Speaks at length with few hesitations. Shows some flexibility. Uses cohesion but may be mechanical.
    Band 5: Maintains flow but has noticeable effort. Overuses certain connectors. May repeat and self-correct.
@@ -437,7 +421,7 @@ SCORING CRITERIA (IELTS 1-9 Band Scale):
    - Natural word choice and collocation
    - Paraphrasing ability
    - Precision and naturalness
-   
+
    Band 9: Uses vocabulary with full flexibility and precision. Uses idiomatic language naturally.
    Band 7: Uses vocabulary resource flexibly to discuss topics at length. Uses some less common items with awareness of style/collocation.
    Band 5: Manages to talk about familiar and unfamiliar topics. Makes noticeable errors but meaning is clear.
@@ -448,7 +432,7 @@ SCORING CRITERIA (IELTS 1-9 Band Scale):
    - Complex structures attempted (errors acceptable if message is clear)
    - Variety of tenses and structures
    - Overall effectiveness despite errors
-   
+
    Band 9: Uses full range of structures naturally and appropriately. Rare errors.
    Band 7: Uses range of complex structures with flexibility. Frequent error-free sentences, though some errors persist.
    Band 5: Produces basic sentence forms and some complex structures. Makes frequent errors but meaning is usually clear.
@@ -458,7 +442,7 @@ SCORING CRITERIA (IELTS 1-9 Band Scale):
    - Linking words: because, however, for example, also, then, first, additionally, etc.
    - Logical organization and idea progression
    - Clear referencing and topic development
-   
+
    Band 9: Develops topics fully and appropriately. Uses cohesion skillfully.
    Band 7: Manages cohesion well though occasional inappropriacies. Logical organization.
    Band 5: Overuses or inappropriately uses cohesive devices. May not always be clear or logical.
@@ -468,23 +452,23 @@ SCORING CRITERIA (IELTS 1-9 Band Scale):
    - Addresses questions fully and relevantly
    - Appropriate response length for each part
    - Extends and develops responses when required
-   
+
    IDEAL LENGTH TARGETS:
    - Part 1 questions: 20-50 words (too short if <10)
    - Part 2 Long Response: 150+ words ideal, 100+ acceptable (too short if <100)
    - Part 2 Rounding-off: 20-50 words (too short if <10)
    - Part 3 questions: 50-100 words (too short if <30)
-   
+
    PENALTIES (already calculated, apply to final Task Achievement score):
    - Irrelevant answers: {metrics.get('irrelevant_count', 0)} × -0.5 = -{metrics.get('irrelevant_count', 0) * 0.5} bands
    - Timeouts: {metrics.get('timeout_count', 0)} × -0.5 = -{metrics.get('timeout_count', 0) * 0.5} bands
    - TOTAL PENALTY: -{total_penalty} bands
-   
+
    Band 9: Fully addresses all tasks with well-developed, extended responses. No irrelevant content.
    Band 7: Addresses all tasks. Some development and detail. Mostly relevant.
    Band 5: Addresses questions but with limited development. Some responses too brief.
    Band 3: Minimal responses, often too brief. May not fully address questions.
-   
+
    IMPORTANT FOR TASK ACHIEVEMENT:
    - Calculate base score (1-9) based on response quality and length
    - Then subtract {total_penalty} for penalties
@@ -549,21 +533,19 @@ Return ONLY valid JSON, no other text."""
             temperature=0.3,  # Lower temperature for more consistent scoring
             response_format={"type": "json_object"}
         )
-        
+
         # Parse JSON response
         result = json.loads(response.choices[0].message.content)
-        
+
         # Validate and add CEFR mapping if not present
         if 'cefr_level' not in result or not result['cefr_level']:
             result['cefr_level'] = map_band_to_cefr(result.get('final_band', 5.0))
-        
+
         return result
-        
+
     except Exception as e:
-        # Fallback scoring if GPT fails
-        import streamlit as st
-        st.error(f"Error during scoring: {str(e)}")
-        
+        print(f"Error during scoring: {str(e)}")
+
         # Return basic fallback scores
         fallback_band = 5.0
         return {
