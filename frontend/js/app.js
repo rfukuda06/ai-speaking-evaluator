@@ -69,7 +69,10 @@ const App = {
                     this._startPrepTimer();
                 } else if (!state.is_part_complete) {
                     if (state.test_mode === 'voice') {
-                        if (state.sub_state === 'rounding' && state.question) {
+                        if (state.sub_state === 'long_response') {
+                            const longQ = (state.prompt_card && state.prompt_card.main_prompt) || state.question;
+                            if (longQ) this._playQuestion(longQ);
+                        } else if (state.sub_state === 'rounding' && state.question) {
                             this._playQuestion(state.question);
                         }
                         this._startInactivityTimer(state);
@@ -305,10 +308,20 @@ const App = {
 
     // ==================== TIMERS ====================
     _startPrepTimer() {
+        const circumference = 2 * Math.PI * 52;
         Timer.start('prep', 60,
             (remaining) => {
                 const el = document.getElementById('prep-timer-display');
-                if (el) el.textContent = Timer.format(remaining);
+                const ring = document.getElementById('prep-ring-fill');
+                if (el) {
+                    const m = Math.floor(remaining / 60);
+                    const s = remaining % 60;
+                    el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+                }
+                if (ring) {
+                    const offset = (1 - remaining / 60) * circumference;
+                    ring.style.strokeDashoffset = offset;
+                }
             },
             async () => {
                 const state = await API.completePrep(this.sessionId);
@@ -375,6 +388,10 @@ const App = {
 
     async _playQuestion(text) {
         if (!text) return;
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            this._currentAudio = null;
+        }
         this._lastQuestionText = text;
         console.log('[TTS] Playing question:', text.substring(0, 50));
         try {
@@ -382,29 +399,19 @@ const App = {
             const audio = new window.Audio(url);
             this._currentAudio = audio;
 
-            // Update audio player UI
             const playBtn = document.getElementById('audio-play-btn');
-            const trackFill = document.getElementById('audio-track-fill');
-            const timeCurrent = document.getElementById('audio-time-current');
-            const timeTotal = document.getElementById('audio-time-total');
+            const status = document.getElementById('audio-status');
 
             if (playBtn) playBtn.innerHTML = UI._svg.pause;
+            if (status) { status.textContent = 'Playing question...'; status.classList.add('playing'); }
 
-            audio.ontimeupdate = () => {
-                if (!audio.duration) return;
-                const pct = (audio.currentTime / audio.duration) * 100;
-                if (trackFill) trackFill.style.width = pct + '%';
-                if (timeCurrent) timeCurrent.textContent = this._formatAudioTime(audio.currentTime);
-            };
-            audio.onloadedmetadata = () => {
-                if (timeTotal) timeTotal.textContent = this._formatAudioTime(audio.duration);
-            };
             audio.onended = () => {
                 if (playBtn) playBtn.innerHTML = UI._svg.play;
-                if (trackFill) trackFill.style.width = '100%';
+                if (status) { status.textContent = 'Tap to replay'; status.classList.remove('playing'); }
             };
             audio.onerror = () => {
                 if (playBtn) playBtn.innerHTML = UI._svg.play;
+                if (status) { status.textContent = 'Playback failed'; status.classList.remove('playing'); }
             };
 
             await audio.play();
@@ -414,26 +421,23 @@ const App = {
         }
     },
 
-    _formatAudioTime(sec) {
-        if (!sec || isNaN(sec)) return '0:00';
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    },
-
     async replayQuestion() {
         if (this._currentAudio) {
             // If currently playing, pause
             if (!this._currentAudio.paused) {
                 this._currentAudio.pause();
                 const playBtn = document.getElementById('audio-play-btn');
+                const status = document.getElementById('audio-status');
                 if (playBtn) playBtn.innerHTML = UI._svg.play;
+                if (status) { status.textContent = 'Paused — tap to resume'; status.classList.remove('playing'); }
                 return;
             }
             // If paused, resume
             if (this._currentAudio.currentTime < this._currentAudio.duration) {
                 const playBtn = document.getElementById('audio-play-btn');
+                const status = document.getElementById('audio-status');
                 if (playBtn) playBtn.innerHTML = UI._svg.pause;
+                if (status) { status.textContent = 'Playing question...'; status.classList.add('playing'); }
                 this._currentAudio.play();
                 return;
             }

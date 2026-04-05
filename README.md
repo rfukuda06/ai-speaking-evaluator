@@ -1,177 +1,130 @@
-# AI English Speaking Evaluator
+# AI Speaking Evaluator
 
-An AI-powered conversational English speaking test that evaluates fluency, grammar, and coherence through a structured multi-part interview. The system generates adaptive questions, analyzes responses using speech + LLM pipelines, and produces IELTS-style band scores (1–9) with detailed feedback.
+An AI-powered English speaking test that simulates an IELTS-style structured interview. The system generates adaptive questions, analyzes responses through a speech + LLM pipeline, and produces band scores (1–9) with detailed CEFR-mapped feedback.
 
 ---
 
-## Demo
+## Screenshots
 
-**Try the live app:** [https://ai-speaking-evaluator.streamlit.app](https://ai-speaking-evaluator.streamlit.app)
+**Home — choose voice or text mode**
+![Home Page](Home%20page.png)
 
-### Screenshots
-
-**Mode Selection - Choose between voice or text mode**
-![Mode Selection](modeselection.png)
-
-**Live Test Interface - Part 1 with audio questions and voice recording**
+**Live Test — Part 1 with AI examiner and voice recording**
 ![Part 1 Test](part1.png)
 
-**Results - IELTS band scoring with CEFR level mapping**
-![CEFR Grade Results](cefrgrade.png)
-
----
-
-## Overview
-
-This project simulates a professional English speaking exam similar to IELTS. Users complete a 3-part adaptive conversation where responses are analyzed for fluency, vocabulary, grammar, and coherence.
-
-The system combines:
-
-* Real-time speech transcription (voice mode)
-* LLM-based conversational examiner
-* Hybrid scoring engine (objective metrics + GPT evaluation)
-* IELTS-style band scoring with CEFR mapping
-
----
-
-## Technical Highlights
-
-* Designed a multi-stage conversational **state machine** for a structured speaking exam flow
-* Built a real-time speech pipeline using **Whisper STT** + **OpenAI TTS**
-* Implemented a **hybrid scoring engine** combining objective speech metrics (WPM, pauses) with LLM evaluation
-* Engineered **adaptive questioning** using relevance checks and follow-ups based on response depth
-* Created an IELTS-style rubric with **weighted scoring** across 5 criteria + **CEFR mapping (A1–C2)**
-* Developed a modular codebase separating UI, voice processing, LLM logic, and scoring
+**Results — IELTS band score, CEFR level, and score breakdown**
+![Results](results.png)
 
 ---
 
 ## Features
 
-### Voice Mode
-
-* Real-time speech-to-text transcription
-* Word-level timestamps (when available)
-* Speaking rate (WPM) calculation
-* Pause detection and fluency analysis
-* Automated timing controls
-
-### Text Mode
-
-* Typing-based alternative assessment
-* Silence detection with check-ins / auto-skip
-* Full scoring and feedback preserved
-
-### Adaptive Conversation Engine
-
-* Questions dynamically generated from user responses
-* Follow-ups based on response depth and relevance
-* Two-strike redirect for off-topic answers
-* Theme extraction across sections (Part 2 → Part 3 continuity)
-
-### Professional Scoring
-
-* IELTS **1–9** band scoring
-* 5 weighted criteria:
-
-  * Fluency & Coherence (25%)
-  * Lexical Resource (20%)
-  * Grammar (20%)
-  * Cohesion (15%)
-  * Task Response (20%)
-* CEFR mapping (A1–C2)
-* Detailed strengths + improvement feedback per criterion
-
----
-
-## System Architecture
-
-```
-app.py                → Streamlit UI + conversational state machine
-llm_functions.py      → GPT examiner prompts, question generation, scoring calls
-voice_functions.py    → Audio I/O, Whisper STT, timing + pause metrics
-scoring.py            → IELTS rubric, penalties, band score + CEFR mapping
-state_management.py   → Part initialization + session state helpers
-utils.py              → Formatting, timers, general utilities
-config.py             → Models, constants, thresholds, rubric weights
-```
+- **Voice & Text modes** — record spoken responses or type them
+- **3-part adaptive interview** — mirrors the IELTS speaking exam structure
+- **AI examiner** — generates contextual follow-up questions based on your answers
+- **Relevance detection** — redirects off-topic responses before skipping
+- **Real-time TTS** — questions are read aloud in voice mode
+- **Hybrid scoring** — objective speech metrics (WPM, pauses) combined with LLM evaluation
+- **IELTS band scores (1–9)** with CEFR mapping (A1–C2) and per-criterion breakdown
 
 ---
 
 ## Test Structure
 
-### Part 1: Interview
-
-* 3 topic areas
-* Adaptive follow-up questions
-* Target: concise responses (word limits enforced)
-
-### Part 2: Long Turn
-
-* Generated prompt card + preparation time
-* Extended response + follow-up questions
-* Target: longer response with structure and detail
-
-### Part 3: Discussion
-
-* Theme extracted from Part 2
-* Higher-level reasoning questions
-* Dynamic follow-ups based on response depth
+| Part | Format | Focus |
+|------|--------|-------|
+| **Part 1 — Interview** | 3 topics × 2 questions | Familiar topics, concise responses |
+| **Part 2 — Long Turn** | Prompt card + 1 min prep | Extended structured response |
+| **Part 3 — Discussion** | 3 main questions + follow-ups | Abstract reasoning, thematic depth |
 
 ---
 
-## Technologies
+## Scoring Criteria
 
-* **Frontend/UI:** Streamlit
-* **LLM:** OpenAI GPT-4o-mini (examiner), GPT-4o (scoring)
-* **STT:** OpenAI Whisper (with word-level timestamps when supported)
-* **TTS:** OpenAI TTS
-* **Styling:** Custom CSS
-* **Language:** Python
+| Criterion | Weight |
+|-----------|--------|
+| Fluency & Coherence | 25% |
+| Lexical Resource | 20% |
+| Grammar Range & Accuracy | 20% |
+| Coherence & Cohesion | 15% |
+| Task Achievement | 20% |
 
 ---
 
-## Why I Built This
+## Tech Stack
 
-Many people in my family are Spanish speakers and wanted a way to practice spoken English without feeling judged. I built this to provide a low-pressure, realistic speaking test experience with adaptive questions and rubric-based feedback powered by speech + LLM evaluation.
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | Python, FastAPI |
+| **Frontend** | Vanilla JS, HTML, CSS |
+| **LLM — Examiner** | OpenAI GPT-4o-mini |
+| **LLM — Scoring** | OpenAI GPT-4o |
+| **Speech-to-Text** | OpenAI Whisper |
+| **Text-to-Speech** | OpenAI TTS |
+| **Config** | python-dotenv |
+
+---
+
+## Project Structure
+
+```
+backend/
+  main.py               → FastAPI app, CORS, static file serving
+  config.py             → Models, constants, scoring weights
+  state_management.py   → Part initialization + session state helpers
+  llm_functions.py      → GPT prompts, question generation, scoring
+  voice_functions.py    → Whisper STT, TTS, timing metrics
+  scoring.py            → IELTS rubric, band scores, CEFR mapping
+  utils.py              → Formatting, timers, silence detection
+  routes/
+    session.py          → Session management endpoints
+    test_flow.py        → Test progression endpoints
+    audio.py            → Audio / TTS endpoints
+  services/
+    session_store.py    → In-memory session storage
+    test_engine.py      → Core test logic state machine
+
+frontend/
+  index.html            → Main HTML page
+  css/style.css         → Dark-mode UI styles
+  js/
+    app.js              → App logic + state machine
+    api.js              → Backend API client
+    audio.js            → Audio recording / playback
+    timer.js            → Countdown timers
+    ui.js               → DOM rendering helpers
+```
 
 ---
 
 ## Running Locally
 
-Clone the repo:
-
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-english-speaking-evaluator.git
-cd ai-english-speaking-evaluator
-```
+git clone https://github.com/YOUR_USERNAME/ai-speaking-evaluator.git
+cd ai-speaking-evaluator
 
-Create and activate a virtual environment:
-
-```bash
 python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
 Create a `.env` file:
 
-```text
+```
 OPENAI_API_KEY=your_key_here
 ```
 
-Run:
+Start the server:
 
 ```bash
-streamlit run app.py
+uvicorn backend.main:app --reload
 ```
+
+Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 
-## Contact
+## Why I Built This
 
-Questions or feedback? Feel free to reach out or open an issue.
+Many people in my family are Spanish speakers and wanted a way to practice spoken English without pressure. This project provides a realistic, adaptive speaking test with rubric-based feedback powered by speech and LLM evaluation.

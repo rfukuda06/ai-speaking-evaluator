@@ -11,6 +11,15 @@ const UI = {
         clock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
         chat: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
         stop: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>',
+        replay: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+        speaker: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
+        edit: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+        tip: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        arrowRight: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+        checkCircle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        chevronDown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+        barChart: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        bookOpen: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
     },
 
     _icon(svgStr, w = 20, h = 20) {
@@ -98,15 +107,15 @@ const UI = {
     },
 
     // ==================== PROGRESS + TABS ====================
-    _progressSection(progress, currentPart) {
+    _progressSection(progress, currentPart, label) {
         const tabs = [1, 2, 3].map(n =>
             `<div class="test-part-tab ${n === currentPart ? 'active' : 'inactive'}">Part ${n}</div>`
         ).join('');
+        const displayLabel = label || `Question ${progress.current} of ${progress.total}`;
 
         return `<div class="test-progress">
             <div class="test-progress-header">
-                <span>Question ${progress.current} of ${progress.total}</span>
-                <span>Part ${currentPart} / 3</span>
+                <span>${displayLabel}</span>
             </div>
             <div class="test-progress-track"><div class="test-progress-fill" style="width:${progress.percent}%"></div></div>
         </div>
@@ -120,22 +129,19 @@ const UI = {
         return `<div class="test-part-tabs" style="padding-top:24px">${tabs}</div>`;
     },
 
-    // ==================== AUDIO PLAYER ====================
-    _audioPlayer() {
-        return `<div class="test-audio-player" id="audio-player">
-            <div class="test-audio-player-row">
-                <button class="audio-play-btn" id="audio-play-btn" onclick="App.replayQuestion()">
-                    ${this._svg.play}
-                </button>
-                <div class="audio-track-wrapper">
-                    <div class="audio-track"><div class="audio-track-fill" id="audio-track-fill"></div></div>
-                    <div class="audio-timestamps">
-                        <span id="audio-time-current">0:00</span>
-                        <span id="audio-time-total">0:00</span>
-                    </div>
-                </div>
+    // ==================== AUDIO DISPLAY ====================
+    _audioDisplay() {
+        return `<div class="test-audio-display" id="audio-player">
+            <button class="audio-play-btn" id="audio-play-btn" onclick="App.replayQuestion()">
+                ${this._svg.play}
+            </button>
+            <div class="audio-display-info">
+                <div class="audio-display-label">AI Examiner</div>
+                <div class="audio-display-status" id="audio-status">Playing question...</div>
             </div>
-            <div class="test-audio-label">Audio: Question</div>
+            <button class="audio-replay-btn" id="audio-replay-btn" onclick="App.replayQuestion()" title="Replay question">
+                ${this._svg.replay}
+            </button>
         </div>`;
     },
 
@@ -187,21 +193,19 @@ const UI = {
 
         const progress = this._progressSection(state.progress, 1);
         const cfg = this._partConfig[1];
-        const ack = state.acknowledgment ? `<div class="test-examiner-ack">"${this._esc(state.acknowledgment)}"</div>` : '';
         const redirect = state.is_redirect ? `<div class="redirect-notice">The examiner has rephrased the question. Please try again.</div>` : '';
 
         let inputArea;
         if (state.test_mode === 'voice') {
             inputArea = `
-                ${this._audioPlayer()}
+                ${this._audioDisplay()}
                 <div class="test-time-limit">${this._svg.clock} Time Limit: ${state.time_limit} seconds</div>
-                ${ack}${redirect}
-                <div class="test-examiner-q">${this._esc(state.question)}</div>
+                ${redirect}
                 ${this._voiceInput('part1')}`;
         } else {
             inputArea = `
                 <div class="test-time-limit">${this._svg.clock} Time Limit: ${state.time_limit} seconds</div>
-                ${ack}${redirect}
+                ${redirect}
                 <div class="test-examiner-q">${this._esc(state.question)}</div>
                 ${this._textInput('Type your answer here...', 1000)}`;
         }
@@ -238,29 +242,77 @@ const UI = {
 
     _part2Prep(state) {
         const tabs = this._partTabs(2);
-        const cfg = this._partConfig[2];
         const pc = state.prompt_card || {};
-        const bullets = (pc.bullet_points || []).map(b => `<li>${this._esc(b)}</li>`).join('');
+        const circumference = 2 * Math.PI * 52; // r=52 → ≈326.73
+
+        const bullets = (pc.bullet_points || []).map((b, i) => `
+            <div class="prep-bullet-item">
+                <span class="prep-bullet-num">${i + 1}</span>
+                <span class="prep-bullet-text">${this._esc(b)}</span>
+            </div>`).join('');
 
         return `${this.topbar()}<div class="content">
             ${tabs}
-            <div class="test-card">
-                <div class="test-card-header">
-                    <h2>${cfg.title}</h2>
-                    <p>${cfg.desc}</p>
+            <div class="prep-page-header">
+                <div class="prep-page-badge">${this._svg.clock} Preparation Time — Part 2</div>
+                <h2 class="prep-page-title">Read &amp; Prepare Your Response</h2>
+                <p class="prep-page-subtitle">You have 1 minute to read the topic card and organize your thoughts before speaking.</p>
+            </div>
+
+            <div class="prep-topic-card">
+                <div class="prep-topic-header">
+                    <div class="prep-topic-icon">${this._svg.chat}</div>
+                    <span class="prep-topic-label">Your Topic</span>
                 </div>
-                <div class="test-card-body">
-                    <div class="test-topic-badge">${this._svg.chat} Your Topic</div>
-                    <div class="test-examiner-q">${this._esc(pc.main_prompt || '')}</div>
-                    ${bullets ? `<div class="prompt-card" style="margin-bottom:16px"><ul>${bullets}</ul></div>` : ''}
-                    <div class="prep-timer">
-                        <div class="timer-display" id="prep-timer-display">1:00</div>
-                        <div class="timer-label">Preparation time remaining</div>
-                    </div>
-                    <div class="submit-row">
-                        <button class="btn-secondary" onclick="App.skipPrep()">Skip Preparation</button>
-                    </div>
+                <div class="prep-topic-body">
+                    <h3 class="prep-topic-title">${this._esc(pc.main_prompt || '')}</h3>
+                    <div class="prep-say-label">You should say:</div>
+                    <div class="prep-bullet-list">${bullets}</div>
                 </div>
+            </div>
+
+            <div class="prep-bottom-row">
+                <div class="prep-timer-wrap">
+                    <div class="prep-timer-circle-wrap">
+                        <svg class="prep-ring" width="144" height="144" viewBox="0 0 144 144">
+                            <circle class="prep-ring-bg" cx="72" cy="72" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
+                            <circle class="prep-ring-fill" id="prep-ring-fill" cx="72" cy="72" r="52" fill="none"
+                                stroke="url(#prepGrad)" stroke-width="6" stroke-linecap="round"
+                                stroke-dasharray="${circumference}" stroke-dashoffset="0"
+                                transform="rotate(-90 72 72)"/>
+                            <defs>
+                                <linearGradient id="prepGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#AD46FF"/>
+                                    <stop offset="100%" stop-color="#8E51FF"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="prep-timer-inner">
+                            <span class="prep-timer-display" id="prep-timer-display">1:00</span>
+                            <span class="prep-timer-remaining">remaining</span>
+                        </div>
+                    </div>
+                    <div class="prep-timer-label">Preparation time</div>
+                </div>
+
+                <div class="prep-notes-card">
+                    <div class="prep-notes-header">
+                        <div class="prep-notes-icon">${this._svg.edit}</div>
+                        <span class="prep-notes-title">Quick Notes</span>
+                        <span class="prep-notes-optional">Optional</span>
+                    </div>
+                    <textarea class="prep-notes-area" placeholder="Jot down key ideas, vocabulary, or structure..."></textarea>
+                </div>
+            </div>
+
+            <div class="prep-tip-banner">
+                <div class="prep-tip-icon">${this._svg.tip}</div>
+                <p><span class="prep-tip-bold">Tip:</span> Structure your answer with an introduction, main points, and a conclusion. Use specific examples to support your ideas.</p>
+            </div>
+
+            <div class="prep-actions">
+                <button class="prep-skip-btn" onclick="App.skipPrep()">Skip Preparation</button>
+                <button class="btn-primary" onclick="App.skipPrep()">I'm Ready to Speak ${this._svg.arrowRight}</button>
             </div>
         </div>`;
     },
@@ -274,7 +326,7 @@ const UI = {
         let inputArea;
         if (state.test_mode === 'voice') {
             inputArea = `
-                ${this._audioPlayer()}
+                ${this._audioDisplay()}
                 <div class="test-time-limit">${this._svg.clock} Time Limit: ${state.time_limit} seconds</div>
                 ${redirect}
                 ${this._voiceInput('part2_long')}`;
@@ -304,21 +356,19 @@ const UI = {
         const tabs = this._partTabs(2);
         const cfg = this._partConfig[2];
         const rp = state.rounding_progress || {};
-        const ack = state.acknowledgment ? `<div class="test-examiner-ack">"${this._esc(state.acknowledgment)}"</div>` : '';
         const redirect = state.is_redirect ? `<div class="redirect-notice">The examiner has rephrased the question. Please try again.</div>` : '';
 
         let inputArea;
         if (state.test_mode === 'voice') {
             inputArea = `
-                ${this._audioPlayer()}
+                ${this._audioDisplay()}
                 <div class="test-time-limit">${this._svg.clock} Time Limit: 30 seconds</div>
-                ${ack}${redirect}
-                <div class="test-examiner-q">${this._esc(state.question)}</div>
+                ${redirect}
                 ${this._voiceInput('part2_rounding')}`;
         } else {
             inputArea = `
                 <div class="test-time-limit">${this._svg.clock} Time Limit: 30 seconds</div>
-                ${ack}${redirect}
+                ${redirect}
                 <div class="test-examiner-q">${this._esc(state.question)}</div>
                 ${this._textInput('Type your answer here...', 1000)}`;
         }
@@ -344,34 +394,31 @@ const UI = {
         }
 
         const p = state.progress || {};
-        const tabs = this._partTabs(3);
         const cfg = this._partConfig[3];
-        const ack = state.acknowledgment ? `<div class="test-examiner-ack">"${this._esc(state.acknowledgment)}"</div>` : '';
         const redirect = state.is_redirect ? `<div class="redirect-notice">The examiner has rephrased the question. Please try again.</div>` : '';
+        const total = p.total_main || 3;
+        const current = Math.min((p.main_questions || 0) + 1, total);
+        const followupSuffix = p.followups > 0 ? ` · Follow-up ${p.followups}` : '';
+        const progressLabel = `Main Question ${current} of ${total}${followupSuffix}`;
+        const progress = this._progressSection({ current, total, percent: ((current - 1) / total) * 100 }, 3, progressLabel);
 
         let inputArea;
         if (state.test_mode === 'voice') {
             inputArea = `
-                ${this._audioPlayer()}
+                ${this._audioDisplay()}
                 <div class="test-time-limit">${this._svg.clock} Time Limit: ${state.time_limit} seconds</div>
-                ${ack}${redirect}
-                <div class="test-examiner-q">${this._esc(state.question)}</div>
+                ${redirect}
                 ${this._voiceInput('part3')}`;
         } else {
             inputArea = `
                 <div class="test-time-limit">${this._svg.clock} Time Limit: ${state.time_limit} seconds</div>
-                ${ack}${redirect}
+                ${redirect}
                 <div class="test-examiner-q">${this._esc(state.question)}</div>
                 ${this._textInput('Type your answer here...', 2000, 5)}`;
         }
 
-        const progressInfo = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-            Main Question ${(p.main_questions || 0) + 1} of ${p.total_main || 3}
-            ${p.followups > 0 ? ` · Follow-up ${p.followups}` : ''}
-        </div>`;
-
         return `${this.topbar()}<div class="content">
-            ${tabs}
+            ${progress}
             <div class="test-card">
                 <div class="test-card-header">
                     <h2>${cfg.title}</h2>
@@ -379,7 +426,6 @@ const UI = {
                 </div>
                 <div class="test-card-body">
                     <div class="test-topic-badge">${this._svg.chat} Theme: ${this._esc(state.theme)}</div>
-                    ${progressInfo}
                     ${inputArea}
                 </div>
             </div>
@@ -387,47 +433,108 @@ const UI = {
     },
 
     // ==================== RESULTS ====================
+    _cefrDescriptions: {
+        'C2': 'Mastery', 'C1': 'Advanced', 'B2': 'Upper Intermediate',
+        'B1': 'Intermediate', 'A2': 'Elementary', 'A1': 'Beginner'
+    },
+
     results(data) {
         const scores = data.scores || {};
         const s = scores.scores || {};
-
         const band = (scores.final_band || 0).toFixed(1);
-        const cefr = scores.cefr_level || 'N/A';
+        const cefr = scores.cefr_level || 'B1';
+        const cefrLabel = `${cefr} — ${this._cefrDescriptions[cefr] || cefr}`;
 
         const criteria = [
-            { key: 'fluency_coherence', label: 'Fluency & Coherence', weight: '25%' },
-            { key: 'lexical_resource', label: 'Lexical Resource', weight: '20%' },
-            { key: 'grammatical_range', label: 'Grammar Range & Accuracy', weight: '20%' },
-            { key: 'coherence_cohesion', label: 'Coherence & Cohesion', weight: '15%' },
-            { key: 'task_achievement', label: 'Task Achievement', weight: '20%' },
+            { key: 'fluency_coherence',  label: 'Fluency & Coherence',         weight: '25%' },
+            { key: 'lexical_resource',   label: 'Lexical Resource',             weight: '20%' },
+            { key: 'grammatical_range',  label: 'Grammar Range & Accuracy',     weight: '20%' },
+            { key: 'coherence_cohesion', label: 'Coherence & Cohesion',         weight: '15%' },
+            { key: 'task_achievement',   label: 'Task Achievement',             weight: '20%' },
         ];
 
-        const grid = criteria.map(c => {
+        const scoreRows = criteria.map((c, i) => {
             const item = s[c.key] || {};
-            const sc = (item.score || 0).toFixed(1);
-            const pct = ((item.score || 0) / 9 * 100).toFixed(0);
-            return `<div class="score-item">
-                <div class="label">${c.label} (${c.weight})</div>
-                <div class="value">${sc}</div>
-                <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+            const score = item.score || 0;
+            const scoreDisp = score % 1 === 0 ? String(score) : score.toFixed(1);
+            const pct = (score / 9 * 100).toFixed(1);
+            const isLast = i === criteria.length - 1;
+            const isGreen = score >= 7;
+            const badgeBg    = isGreen ? 'rgba(0,188,125,0.15)'  : 'rgba(254,154,0,0.15)';
+            const badgeBdr   = isGreen ? 'rgba(0,188,125,0.25)'  : 'rgba(254,154,0,0.25)';
+            const scoreColor = isGreen ? '#00D492'                : '#FFB900';
+            const barGrad    = isGreen ? 'linear-gradient(90deg,#00D492,#00BC7D)' : 'linear-gradient(90deg,#FFB900,#FE9A00)';
+            return `<div class="res-score-row${isLast ? ' res-score-row--last' : ''}">
+                <div class="res-score-badge" style="background:${badgeBg};border-color:${badgeBdr};color:${scoreColor}">${scoreDisp}</div>
+                <div class="res-score-info">
+                    <div class="res-score-name-row">
+                        <span class="res-score-name">${this._esc(c.label)}</span>
+                        <span class="res-score-weight">${c.weight}</span>
+                    </div>
+                    <div class="res-score-bar"><div class="res-score-bar-fill" style="width:${pct}%;background:${barGrad}"></div></div>
+                </div>
             </div>`;
         }).join('');
 
-        const strengths = (scores.strengths || []).map(s => `<li>${this._esc(s)}</li>`).join('');
-        const improvements = (scores.areas_for_improvement || []).map(s => `<li>${this._esc(s)}</li>`).join('');
+        const svgCheck = `<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 7l3.5 3.5L12 3" stroke="#00BC7D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+        const svgWarn  = `<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2L13 12H1L7 2z" stroke="#FE9A00" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 6v3" stroke="#FE9A00" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="10.5" r="0.75" fill="#FE9A00"/></svg>`;
+        const svgTrend = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 11l4-4 3 3 5-6" stroke="#00BC7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 4h3v3" stroke="#00BC7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+        const svgAlert = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6.5" stroke="#FE9A00" stroke-width="1.5"/><path d="M8 5v4" stroke="#FE9A00" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r="0.75" fill="#FE9A00"/></svg>`;
+
+        const strengthItems = (scores.strengths || []).map(t =>
+            `<div class="res-fb-item">
+                <div class="res-fb-dot res-fb-dot--green">${svgCheck}</div>
+                <span>${this._esc(t)}</span>
+            </div>`).join('');
+
+        const improveItems = (scores.areas_for_improvement || []).map(t =>
+            `<div class="res-fb-item">
+                <div class="res-fb-dot res-fb-dot--orange">${svgWarn}</div>
+                <span>${this._esc(t)}</span>
+            </div>`).join('');
 
         return `${this.topbar()}<div class="content">
-            <div class="results-header">
-                <div class="band-score">${band}</div>
-                <div style="font-size:14px;color:var(--text-muted);margin-top:4px">IELTS Band Score</div>
-                <div class="cefr-badge">CEFR Level: ${cefr}</div>
+            <div class="res-header">
+                <div class="res-complete-badge">${this._svg.checkCircle} Assessment Complete</div>
+                <h1 class="res-title">Your Speaking Assessment Results</h1>
             </div>
-            <div class="score-grid">${grid}</div>
-            ${strengths ? `<div class="feedback-section strengths"><h3>Strengths</h3><ul>${strengths}</ul></div>` : ''}
-            ${improvements ? `<div class="feedback-section improvements"><h3>Areas for Improvement</h3><ul>${improvements}</ul></div>` : ''}
-            ${scores.overall_feedback ? `<div class="overall-feedback">${this._esc(scores.overall_feedback)}</div>` : ''}
-            <div class="submit-row mt-24">
-                <button class="btn-primary" onclick="App.retake()">Retake Test</button>
+
+            <div class="res-hero-card">
+                <div class="res-hero-bg">
+                    <p class="res-hero-label">Your IELTS Speaking Band Score</p>
+                    <div class="res-band-circle"><span class="res-band-num">${band}</span></div>
+                    <div class="res-cefr-pill"><span class="res-cefr-muted">CEFR Level:</span> ${this._esc(cefrLabel)}</div>
+                </div>
+                ${scores.overall_feedback ? `<div class="res-hero-feedback"><p>${this._esc(scores.overall_feedback)}</p></div>` : ''}
+            </div>
+
+            <div class="res-fb-row">
+                <div class="res-fb-card">
+                    <div class="res-fb-card-header">
+                        <div class="res-fb-icon res-fb-icon--green">${svgTrend}</div>
+                        <span>Strengths</span>
+                    </div>
+                    <div class="res-fb-items">${strengthItems}</div>
+                </div>
+                <div class="res-fb-card">
+                    <div class="res-fb-card-header">
+                        <div class="res-fb-icon res-fb-icon--orange">${svgAlert}</div>
+                        <span>Areas to Improve</span>
+                    </div>
+                    <div class="res-fb-items">${improveItems}</div>
+                </div>
+            </div>
+
+            <div class="res-breakdown">
+                <div class="res-breakdown-header">
+                    ${this._svg.barChart}
+                    <h2>Score Breakdown</h2>
+                </div>
+                <div class="res-score-card">${scoreRows}</div>
+            </div>
+
+            <div class="res-actions res-actions--center">
+                <button class="btn-primary" onclick="App.retake()">${this._svg.replay} Take Another Test</button>
             </div>
         </div>`;
     },

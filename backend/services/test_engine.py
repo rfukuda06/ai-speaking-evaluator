@@ -99,7 +99,7 @@ def generate_next_question_part1(session):
     )
 
     if should_build and last_answer:
-        system_prompt += f"\n\nThe candidate just said: \"{last_answer[:200]}\". Briefly acknowledge what they said (1 short sentence) then ask your next question about {topic} that naturally connects to their response."
+        system_prompt += f"\n\nThe candidate just said: \"{last_answer[:200]}\". Ask your next question about {topic} that naturally connects to their response. Ask ONLY the question — do NOT include any acknowledgment or preamble."
 
     # After a failed redirect, explicitly instruct GPT to ask a completely different question
     if session.pop('_skip_repeated_question', False):
@@ -128,10 +128,10 @@ def submit_answer_part1(session, answer):
         answer = ' '.join(words[:65])
 
     question = session.get('part1_current_question', '')
-    history = session.get('part1_conversation_history', [])
-    context = _get_context(history)
 
-    is_relevant, relevance_score = check_relevance(answer, question, context)
+    # Check relevance against the current question only — no conversation context,
+    # to prevent previous relevant answers from biasing the relevance check.
+    is_relevant, relevance_score = check_relevance(answer, question, "")
     relevant = is_relevant or relevance_score >= RELEVANCE_THRESHOLD
 
     if relevant:
@@ -304,7 +304,7 @@ def _handle_long_response_relevant(session, answer):
     session['part2_rounding_question_index'] = 0
     session['part2_rounding_questions_answered'] = 0
 
-    return _part2_state(session, sub_state='rounding')
+    return get_current_rounding_question(session)
 
 
 def _handle_long_response_second_irrelevant(session, answer):
@@ -523,7 +523,7 @@ def _handle_relevant_part3(session, answer):
     followups = session.get('part3_followups_asked', 0)
 
     # Generate acknowledgment
-    ack = generate_part3_acknowledgment(answer, session['part3_current_question'])
+    ack = generate_part3_acknowledgment(session.get('part3_theme', ''), session.get('part3_conversation_history', []))
     session['part3_acknowledgment'] = ack
     history.append({'role': 'examiner', 'content': ack})
     session['part3_conversation_history'] = history
